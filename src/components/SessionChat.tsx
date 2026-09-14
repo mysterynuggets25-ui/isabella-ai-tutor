@@ -61,9 +61,14 @@ export default function SessionChat({
   const lastTutor = [...messages].reverse().find((m) => m.role === "tutor");
 
   function join() {
-    voice.prime(); // unlock iOS speech within the tap
     setJoined(true);
     setStartedAt(Date.now());
+    // Mia greets out loud immediately (free, browser voice) so voice is obvious
+    // and, on Safari/iOS, so the first speech starts inside the tap gesture.
+    const greeting = `Hi Isabella, I'm ${tutorName}. What are we working on in ${subjectName} today?`;
+    setMessages([{ role: "tutor", content: greeting }]);
+    voice.prime();
+    if (voiceOn) voice.speak(greeting);
   }
 
   async function send() {

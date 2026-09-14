@@ -1,5 +1,21 @@
 # Progress
 
+## 2026-09-14 — Phase 2 (voice + character + live-call) + full NSW grounding
+- **Animated character** Mia (`TutorCharacter.tsx`): warm tutor on a headset, blinks, idles,
+  mouth moves while speaking.
+- **Voice out** via browser SpeechSynthesis (`useTutorVoice.ts`): free, on-device, works on iPhone,
+  iOS gesture unlock (`prime()`), speaker toggle. No token/API cost — reads the already-generated
+  text aloud. Neural-TTS upgrade left as an optional paid swap behind the same interface.
+- **Immersive live-call session**: moved `/session` out of the tab-bar shell; join lobby, LIVE
+  badge, live countdown + session-arc stage, active-speaker glow, call-style controls.
+- **Today redesigned** into a personal organiser: time-of-day greeting, next-session hero with
+  Join, streak, jump-in tiles.
+- **Sign-out** button added (console + Me).
+- **All 8 subjects now have NSW/NESA Year 10 grounding** (`curriculum/index.ts`): maths, english,
+  science, hsie, pdhpe, food_tech, money (financial maths), christian (school's own program, not
+  NESA). NOTE: Sarah activated all 8 subjects in the console (seed only had maths+english).
+- Verified end to end in-browser as Isabella (login → join → coached reply). Deployed to prod.
+
 ## 2026-09-14 — LIVE on Vercel (dev account)
 - Deployed to production: **https://isabella-ai-tutor.vercel.app** (mysterynuggets25 dev account,
   project `isabella-ai-tutor`, org `team_AdqDghUWAggSEMrWTTfL2YPT`).
