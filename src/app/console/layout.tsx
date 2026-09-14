@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getUserRole } from "@/lib/auth";
+import SignOutButton from "@/components/SignOutButton";
 
 // The console is Sarah's. Isabella has no access to it.
 export default async function ConsoleLayout({ children }: { children: React.ReactNode }) {
@@ -17,6 +18,9 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
           <NavLink href="/console/transcripts" label="Sessions" />
           <NavLink href="/console/settings" label="Subjects &amp; settings" />
           <NavLink href="/console/safety" label="Safety" />
+          <span className="ml-auto">
+            <SignOutButton />
+          </span>
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-6 py-8">{children}</main>

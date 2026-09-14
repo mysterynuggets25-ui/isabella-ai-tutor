@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import SignOutButton from "@/components/SignOutButton";
 
 // Me — gamification that rewards showing up and effort, never being right.
 // No leaderboards, no scores, nothing to lose.
@@ -66,6 +67,10 @@ export default async function MePage() {
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="mt-10 text-center">
+        <SignOutButton />
       </div>
     </div>
   );
