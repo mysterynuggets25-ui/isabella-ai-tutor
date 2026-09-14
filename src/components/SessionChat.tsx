@@ -1,34 +1,75 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-
-const TUTOR_NAME = "Mia";
+import TutorCharacter from "@/components/TutorCharacter";
+import { useTutorVoice } from "@/lib/tutor/useTutorVoice";
 
 type Msg = { role: "learner" | "tutor"; content: string };
 
-// The live session. Phase 1 is text in / text out. The character here is a
-// static placeholder; Phase 2 swaps in the audio-driven animated face.
+// The live session as a "video call" (Phase 2): a join lobby, an animated tutor
+// on a headset, voice out, and the timed session arc — so it feels like a real
+// scheduled tutoring call, not another page.
 export default function SessionChat({
   subjectKey,
   subjectName,
   mode,
+  tutorName = "Mia",
+  sessionLengthMin = 30,
+  voiceSpeed = 1,
 }: {
   subjectKey: string;
   subjectName: string;
   mode: "scheduled" | "adhoc";
+  tutorName?: string;
+  sessionLengthMin?: number;
+  voiceSpeed?: number;
 }) {
   const router = useRouter();
+  const voice = useTutorVoice({ rate: voiceSpeed });
+  const [joined, setJoined] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [sessionId, setSessionId] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [ending, setEnding] = useState(false);
+  const [voiceOn, setVoiceOn] = useState(true);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now());
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!startedAt) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [startedAt]);
+
+  const totalSec = sessionLengthMin * 60;
+  const elapsedSec = startedAt ? Math.floor((now - startedAt) / 1000) : 0;
+  const remainingSec = Math.max(0, totalSec - elapsedSec);
+  const clock =
+    mode === "scheduled"
+      ? `${Math.floor(remainingSec / 60)}:${String(remainingSec % 60).padStart(2, "0")}`
+      : `${Math.floor(elapsedSec / 60)}:${String(elapsedSec % 60).padStart(2, "0")}`;
+  const arcStage =
+    !startedAt ? "" :
+    elapsedSec < totalSec * 0.1 ? "Settling in" :
+    elapsedSec < totalSec * 0.75 ? "Working through it" :
+    elapsedSec < totalSec * 0.9 ? "Your turn to explain" :
+    "Wrapping up";
+
+  const lastTutor = [...messages].reverse().find((m) => m.role === "tutor");
+
+  function join() {
+    voice.prime(); // unlock iOS speech within the tap
+    setJoined(true);
+    setStartedAt(Date.now());
+  }
 
   async function send() {
     const text = input.trim();
     if (!text || busy) return;
+    voice.prime();
     setInput("");
     setMessages((m) => [...m, { role: "learner", content: text }]);
     setBusy(true);
@@ -40,15 +81,11 @@ export default function SessionChat({
       });
       const data = await res.json();
       if (data.sessionId) setSessionId(data.sessionId);
-      setMessages((m) => [
-        ...m,
-        { role: "tutor", content: data.reply ?? "Sorry, I had trouble there. Try again?" },
-      ]);
+      const reply = data.reply ?? "Sorry, I had trouble there. Try again?";
+      setMessages((m) => [...m, { role: "tutor", content: reply }]);
+      if (voiceOn) voice.speak(reply);
     } catch {
-      setMessages((m) => [
-        ...m,
-        { role: "tutor", content: "I lost connection for a second. Try that again?" },
-      ]);
+      setMessages((m) => [...m, { role: "tutor", content: "I lost connection for a second. Try that again?" }]);
     } finally {
       setBusy(false);
       requestAnimationFrame(() =>
@@ -57,7 +94,13 @@ export default function SessionChat({
     }
   }
 
+  function toggleVoice() {
+    if (voiceOn) voice.cancel();
+    setVoiceOn((v) => !v);
+  }
+
   async function endSession() {
+    voice.cancel();
     if (sessionId) {
       setEnding(true);
       await fetch("/api/session", {
@@ -69,36 +112,73 @@ export default function SessionChat({
     router.push("/");
   }
 
-  return (
-    <div className="flex min-h-[80dvh] flex-col">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-xs uppercase tracking-wide text-ink/50">
-            {subjectName} · {mode === "scheduled" ? "session" : "quick help"}
-          </div>
-          <div className="text-lg font-semibold">{TUTOR_NAME}</div>
+  // ---- Join lobby -----------------------------------------------------------
+  if (!joined) {
+    return (
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-teal-deep to-[#06201d] px-6 text-center text-white">
+        <div className="text-xs uppercase tracking-[0.2em] text-white/50">
+          {mode === "scheduled" ? "Scheduled session" : "Quick help"}
         </div>
+        <div className="mt-8 rounded-[2rem] bg-white/5 p-6 ring-1 ring-white/10">
+          <TutorCharacter size={150} />
+        </div>
+        <h1 className="mt-6 text-2xl font-semibold">{subjectName} with {tutorName}</h1>
+        <p className="mt-2 text-white/60">
+          {mode === "scheduled" ? `${sessionLengthMin} minutes · one thing at a time` : "Bring your question"}
+        </p>
         <button
-          onClick={endSession}
-          disabled={ending}
-          className="rounded-full border border-sand px-4 py-1.5 text-sm text-ink/70 hover:border-teal disabled:opacity-50"
+          onClick={join}
+          className="mt-8 w-full max-w-xs rounded-full bg-coral py-4 text-lg font-semibold text-white shadow-lg hover:bg-coral-deep"
         >
-          {ending ? "Saving..." : "End"}
+          Join session
+        </button>
+        <button onClick={() => router.push("/")} className="mt-4 text-sm text-white/50 hover:text-white">
+          Not now
         </button>
       </div>
+    );
+  }
 
-      {/* Character placeholder (Phase 2 = animated audio-driven face) */}
-      <div className="mt-4 flex justify-center">
-        <div className="flex h-24 w-24 items-center justify-center rounded-full bg-teal-deep text-3xl text-white">
-          {TUTOR_NAME[0]}
+  // ---- Live call ------------------------------------------------------------
+  return (
+    <div className="fixed inset-0 flex flex-col bg-gradient-to-b from-teal-deep to-[#06201d] text-white">
+      {/* Call header */}
+      <div className="flex items-center justify-between px-5 pt-6 pb-3">
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1.5 rounded-full bg-coral/90 px-2.5 py-1 text-xs font-semibold">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" /> LIVE
+          </span>
+          <span className="text-sm text-white/70">{subjectName}</span>
+        </div>
+        <div className="text-right">
+          <div className={`font-mono text-lg ${mode === "scheduled" && remainingSec <= 300 ? "text-coral" : "text-white"}`}>
+            {clock}
+          </div>
+          {arcStage && <div className="text-[10px] uppercase tracking-wide text-white/40">{arcStage}</div>}
         </div>
       </div>
 
-      <div ref={scrollRef} className="mt-4 flex-1 space-y-3 overflow-y-auto">
+      {/* Tutor "video tile" */}
+      <div className="flex flex-col items-center px-5">
+        <div
+          className={`rounded-[2rem] bg-white/5 p-4 ring-2 transition-all ${
+            voice.speaking ? "ring-coral shadow-[0_0_40px_-8px_var(--color-coral)]" : "ring-white/10"
+          }`}
+        >
+          <TutorCharacter speaking={voiceOn && voice.speaking} thinking={busy} size={128} />
+        </div>
+        <div className="mt-2 text-sm font-medium">{tutorName}</div>
+        <div className="text-xs text-white/40">{busy ? "thinking…" : voice.speaking ? "speaking…" : "your tutor"}</div>
+      </div>
+
+      {/* Transcript */}
+      <div ref={scrollRef} className="mt-3 flex-1 space-y-2.5 overflow-y-auto px-5">
         {messages.length === 0 && (
-          <div className="rounded-2xl bg-sand p-4 text-sm text-ink/70">
-            Hi, I&apos;m {TUTOR_NAME}. Tell me what you&apos;re working on in {subjectName}, or
-            paste the question you&apos;re stuck on. We&apos;ll do it together.
+          <div className="mx-auto max-w-sm rounded-2xl bg-white/10 p-4 text-center text-sm text-white/80">
+            Say hi, or tell {tutorName} what you&apos;re working on in {subjectName}.
+            {voice.supported && (
+              <span className="mt-1 block text-white/50">Tap the mic on your keyboard to talk instead of type.</span>
+            )}
           </div>
         )}
         {messages.map((m, i) => (
@@ -106,35 +186,58 @@ export default function SessionChat({
             key={i}
             className={
               m.role === "learner"
-                ? "ml-auto max-w-[85%] rounded-2xl bg-coral px-4 py-2 text-white"
-                : "mr-auto max-w-[85%] rounded-2xl bg-white px-4 py-2 shadow-sm"
+                ? "ml-auto max-w-[82%] rounded-2xl rounded-br-md bg-coral px-4 py-2 text-white"
+                : "mr-auto max-w-[82%] rounded-2xl rounded-bl-md bg-white/12 px-4 py-2 text-white backdrop-blur"
             }
           >
             {m.content}
           </div>
         ))}
         {busy && (
-          <div className="mr-auto max-w-[60%] rounded-2xl bg-white px-4 py-2 text-ink/40 shadow-sm">
-            {TUTOR_NAME} is thinking...
+          <div className="mr-auto max-w-[60%] rounded-2xl bg-white/10 px-4 py-2 text-white/50">
+            {tutorName} is thinking…
           </div>
         )}
       </div>
 
-      <div className="sticky bottom-20 mt-3 flex gap-2">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && send()}
-          placeholder={`Message ${TUTOR_NAME}`}
-          className="flex-1 rounded-full border border-sand bg-white px-4 py-3 outline-none focus:border-teal"
-        />
-        <button
-          onClick={send}
-          disabled={busy}
-          className="rounded-full bg-teal px-5 py-3 font-semibold text-white hover:bg-teal-deep disabled:opacity-50"
-        >
-          Send
-        </button>
+      {/* Input + call controls */}
+      <div className="border-t border-white/10 bg-black/20 px-4 pb-6 pt-3">
+        <div className="flex items-center gap-2">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && send()}
+            placeholder={`Message ${tutorName}`}
+            className="flex-1 rounded-full border border-white/15 bg-white/10 px-4 py-3 text-white placeholder-white/40 outline-none focus:border-coral"
+          />
+          <button
+            onClick={send}
+            disabled={busy}
+            className="rounded-full bg-coral px-5 py-3 font-semibold text-white hover:bg-coral-deep disabled:opacity-50"
+          >
+            Send
+          </button>
+        </div>
+        <div className="mt-3 flex items-center justify-center gap-4">
+          {voice.supported && (
+            <button
+              onClick={toggleVoice}
+              className={`flex h-11 w-11 items-center justify-center rounded-full text-lg ${
+                voiceOn ? "bg-white/15" : "bg-white/5 text-white/40"
+              }`}
+              aria-label={voiceOn ? "Mute Mia" : "Unmute Mia"}
+            >
+              {voiceOn ? "🔊" : "🔇"}
+            </button>
+          )}
+          <button
+            onClick={endSession}
+            disabled={ending}
+            className="flex h-11 items-center gap-2 rounded-full bg-coral px-5 font-semibold text-white hover:bg-coral-deep disabled:opacity-60"
+          >
+            {ending ? "Saving…" : "End session"}
+          </button>
+        </div>
       </div>
     </div>
   );

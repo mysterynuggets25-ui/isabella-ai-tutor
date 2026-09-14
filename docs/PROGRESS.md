@@ -1,5 +1,19 @@
 # Progress
 
+## 2026-09-14 — LIVE on Vercel (dev account)
+- Deployed to production: **https://isabella-ai-tutor.vercel.app** (mysterynuggets25 dev account,
+  project `isabella-ai-tutor`, org `team_AdqDghUWAggSEMrWTTfL2YPT`).
+- Supabase project live (ref `ynzgathnscejsvtaasih`): both migrations run, 8 subjects (Maths +
+  English active), settings row, 2 auth users mapped in `app_users`
+  (sarah.bellefever@gmail.com = parent, isabella.saputra@gmail.com = learner).
+- All 4 env vars set in Vercel Production (URL + anon = Config; service_role + Anthropic = Secret).
+- Verified end to end: Anthropic key works and Mia coaches instead of answering; login renders;
+  protected routes redirect; production URL public (no Vercel SSO wall).
+- Added a sign-out button (console header + learner Me) for shared-device use.
+- Deployed via Vercel CLI from local (not git-connected), so GitHub `origin/main` is 1 commit
+  behind prod (the sign-out commit). Push it when the account allows, or connect the repo in the
+  Vercel dashboard for auto-deploy.
+
 ## 2026-09-12 — Phase 1 scaffolded and building
 - New project `~/isabella-ai-tutor`, mirrors the ArborOS stack on the mysterynuggets25 dev account.
 - Stack: Next.js 16 + React 19 + Tailwind v4 + Supabase + Anthropic.
