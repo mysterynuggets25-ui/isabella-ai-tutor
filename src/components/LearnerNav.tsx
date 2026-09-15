@@ -8,9 +8,10 @@ import PersonaName from "@/components/PersonaName";
 const BUILT = [
   { href: "/", label: "Home" },
   { href: "/subjects", label: "Subjects" },
+  { href: "/coming-up", label: "Coming up" },
   { href: "/me", label: "My corner" },
 ];
-const SOON = ["Coming up", "My work", "Cheat sheets"];
+const SOON = ["My work", "Cheat sheets"];
 
 // Desktop: a calm left sidebar (the mockup layout). Mobile: a bottom bar.
 export default function LearnerNav() {

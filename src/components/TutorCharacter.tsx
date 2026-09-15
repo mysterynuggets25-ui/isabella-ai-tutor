@@ -67,6 +67,12 @@ export default function TutorCharacter({
   return (
     <svg viewBox="0 0 200 200" width={size} height={size} role="img" aria-label="Your tutor">
       {/* Ears (behind head) */}
+      {animal === "pig" && (
+        <>
+          <path d="M64 72 L52 44 L86 62 Z" fill={color} />
+          <path d="M136 72 L148 44 L114 62 Z" fill={color} />
+        </>
+      )}
       {animal === "fox" && (
         <>
           <path d="M58 78 L44 26 L86 60 Z" fill={color} />
@@ -148,7 +154,18 @@ export default function TutorCharacter({
       )}
 
       {/* Nose / beak + mouth */}
-      {animal === "owl" ? (
+      {animal === "pig" ? (
+        <>
+          <ellipse cx="100" cy="130" rx="22" ry="16" fill="#d98a8a" />
+          <ellipse cx="92" cy="130" rx="4" ry="6" fill={DARK} />
+          <ellipse cx="108" cy="130" rx="4" ry="6" fill={DARK} />
+          {open < 0.15 ? (
+            <path d="M86 150 q14 8 28 0" fill="none" stroke={DARK} strokeWidth="2.5" strokeLinecap="round" />
+          ) : (
+            <ellipse cx="100" cy={152} rx={8 - open * 2} ry={2 + open * 6} fill="#7a3b32" />
+          )}
+        </>
+      ) : animal === "owl" ? (
         <path d={`M100 118 l-9 0 l9 ${12 + open * 12} Z M100 118 l9 0 l-9 ${12 + open * 12} Z`} fill="#d9a05f" />
       ) : (
         <>

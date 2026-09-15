@@ -1,5 +1,27 @@
 # Progress
 
+## 2026-09-15 (pm) — Mockup redesign + animal tutor + responsive + PWA
+- New look & feel per Sarah's desktop mockup: warm **cream / sage / terracotta** palette (remapped
+  the teal/coral tokens so the whole app shifted) + **Fraunces serif** headings.
+- **Tutor is now an ANIMAL Isabella picks** (fox/cat/rabbit/bear/owl) with name, fur colour and
+  voice (male/female) — `persona.ts` reshaped, `TutorCharacter.tsx` draws animals, `/tutor` picker
+  rebuilt, `useTutorVoice` honours gender. Default = fox "Hazel".
+- **Responsive**: calm left **sidebar on desktop** (`LearnerNav`), **bottom bar on mobile**; Home
+  restyled to the reserved tone (Start here / Later this week / "do ten minutes instead").
+- **Installable app**: `public/manifest.webmanifest` + `icon.svg`, apple-web-app meta.
+- Softened the privacy line ("Only you and Mum can see them, no one else.").
+- Verified in-browser (desktop sidebar + mobile + animal picker switching + session lobby). Deployed.
+
+### NOT built yet (proposed next — see HANDOVER §5/§6 and below)
+- **The call centrepiece rebuild**: self-view tile, camera OFF by default, mic/camera buttons,
+  live **shared board** where working appears, "type instead" in-call, leave button.
+- **My corner = animal sanctuary** growing one animal per completed week (Me page is still the old
+  gamification).
+- **Goals + progress** tracking.
+- **Push notifications** for session reminders (needs a service worker + web-push/VAPID backend;
+  iOS requires the PWA be installed to the home screen). Manifest/installability is done; push is not.
+- Coming up / My work / Cheat sheets pages (shown as "soon" in the nav).
+
 ## 2026-09-15 — Tutor customiser + Haiku cost switch + debug pass
 - **Isabella can customise her tutor** (`/tutor`): name, skin tone, hair colour, hair style, live
   preview. Stored per-device in localStorage (`src/lib/persona.ts`), no DB change. Chosen name is

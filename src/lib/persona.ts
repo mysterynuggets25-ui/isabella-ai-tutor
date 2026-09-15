@@ -5,7 +5,7 @@
 // parent approval. The name is passed into each tutor request so the model
 // knows who it is. The animal, colour, name and voice are all Isabella's call.
 
-export type Animal = "fox" | "cat" | "rabbit" | "bear" | "owl";
+export type Animal = "pig" | "fox" | "cat" | "rabbit" | "bear" | "owl";
 
 export type Persona = {
   name: string;
@@ -15,6 +15,7 @@ export type Persona = {
 };
 
 export const ANIMALS: { key: Animal; label: string }[] = [
+  { key: "pig", label: "Pig" },
   { key: "fox", label: "Fox" },
   { key: "cat", label: "Cat" },
   { key: "rabbit", label: "Rabbit" },
@@ -23,12 +24,12 @@ export const ANIMALS: { key: Animal; label: string }[] = [
 ];
 
 // Warm, low-contrast fur colours (no neon).
-export const FUR_COLORS = ["#c1673f", "#d9a05f", "#8a8f7a", "#6e7d58", "#7a6a5a", "#3b352d"];
+export const FUR_COLORS = ["#e8a0a0", "#c1673f", "#d9a05f", "#8a8f7a", "#6e7d58", "#7a6a5a", "#3b352d"];
 
 export const DEFAULT_PERSONA: Persona = {
-  name: "Hazel",
-  animal: "fox",
-  color: FUR_COLORS[0],
+  name: "Penny",
+  animal: "pig",
+  color: "#e8a0a0",
   voice: "female",
 };
 

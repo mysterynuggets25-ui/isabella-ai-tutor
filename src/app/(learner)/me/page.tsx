@@ -1,80 +1,83 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import TutorCharacter from "@/components/TutorCharacter";
+import Goals from "@/components/Goals";
 import SignOutButton from "@/components/SignOutButton";
+import type { Animal } from "@/lib/persona";
 
-// Me — gamification that rewards showing up and effort, never being right.
-// No leaderboards, no scores, nothing to lose.
-export default async function MePage() {
+// My corner — a quiet, private place that rewards showing up. One animal joins
+// the sanctuary each week she completes. No scores, no leaderboards.
+const SANCTUARY: { animal: Animal; color: string; name: string }[] = [
+  { animal: "pig", color: "#e8a0a0", name: "Penny" },
+  { animal: "rabbit", color: "#d9a05f", name: "Clover" },
+  { animal: "cat", color: "#8a8f7a", name: "Sage" },
+  { animal: "fox", color: "#c1673f", name: "Rusty" },
+  { animal: "owl", color: "#6e7d58", name: "Ollie" },
+  { animal: "bear", color: "#7a6a5a", name: "Bramble" },
+];
+
+const MONDAY_EPOCH = Date.UTC(2020, 0, 6); // a Monday
+
+export default async function MyCornerPage() {
   const supabase = await createClient();
+  const { data: sessions } = await supabase.from("sessions").select("started_at").limit(2000);
 
-  const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
-  const { data: recent } = await supabase
-    .from("sessions")
-    .select("id,started_at")
-    .gte("started_at", weekAgo);
-  const { count: total } = await supabase
-    .from("sessions")
-    .select("id", { count: "exact", head: true });
+  const all = sessions ?? [];
+  const weekAgo = Date.now() - 7 * 86_400_000;
+  const thisWeek = all.filter((s) => new Date(s.started_at).getTime() >= weekAgo).length;
 
-  const thisWeek = recent?.length ?? 0;
-  const questTarget = 3;
-  const totalSessions = total ?? 0;
-
-  const badges = [
-    { label: "First session", earned: totalSessions >= 1 },
-    { label: "3 in a week", earned: thisWeek >= 3 },
-    { label: "10 sessions", earned: totalSessions >= 10 },
-  ];
+  // Count "completed weeks" = weeks with 3+ sessions.
+  const perWeek = new Map<number, number>();
+  for (const s of all) {
+    const wk = Math.floor((new Date(s.started_at).getTime() - MONDAY_EPOCH) / (7 * 86_400_000));
+    perWeek.set(wk, (perWeek.get(wk) ?? 0) + 1);
+  }
+  const completedWeeks = [...perWeek.values()].filter((n) => n >= 3).length;
+  const unlocked = Math.min(completedWeeks, SANCTUARY.length);
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Isabella</h1>
+      <h1 className="text-3xl">My corner</h1>
+      <p className="mt-2 text-sm text-ink/55">Yours. A new friend joins each week you show up.</p>
 
       <div className="mt-6 grid grid-cols-3 gap-3 text-center">
         <Stat value={thisWeek} label="this week" />
-        <Stat value={totalSessions} label="sessions" />
-        <Stat value={badges.filter((b) => b.earned).length} label="badges" />
+        <Stat value={all.length} label="sessions" />
+        <Stat value={completedWeeks} label="weeks" />
       </div>
 
-      <div className="mt-6 rounded-2xl border border-sand bg-white p-5">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold">This week&apos;s quest</h2>
-          <span className="text-sm text-ink/60">
-            {Math.min(thisWeek, questTarget)} of {questTarget}
-          </span>
+      {/* Sanctuary */}
+      <div className="mt-6 rounded-3xl border border-sand bg-gradient-to-b from-sage/15 to-paper p-5">
+        <h2 className="text-lg">Your sanctuary</h2>
+        <p className="mt-1 text-xs text-ink/55">
+          {unlocked === 0
+            ? "Finish a week of sessions and your first friend arrives."
+            : `${unlocked} ${unlocked === 1 ? "friend has" : "friends have"} joined you.`}
+        </p>
+        <div className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-6">
+          {SANCTUARY.map((a, i) => {
+            const on = i < unlocked;
+            return (
+              <div key={a.animal} className="flex flex-col items-center">
+                <div className={on ? "" : "opacity-20 grayscale"}>
+                  <TutorCharacter size={56} look={{ animal: a.animal, color: a.color }} />
+                </div>
+                <div className="mt-1 text-[11px] text-ink/50">{on ? a.name : "· · ·"}</div>
+              </div>
+            );
+          })}
         </div>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-sand">
-          <div
-            className="h-full bg-teal"
-            style={{ width: `${Math.min(100, (thisWeek / questTarget) * 100)}%` }}
-          />
-        </div>
-        <p className="mt-2 text-sm text-ink/60">Three sessions. Resets Sunday. A missed night is fine.</p>
       </div>
 
       <div className="mt-6">
-        <h2 className="font-semibold">Badges</h2>
-        <div className="mt-3 grid grid-cols-3 gap-3">
-          {badges.map((b) => (
-            <div
-              key={b.label}
-              className={`rounded-2xl border p-3 text-center text-xs ${
-                b.earned
-                  ? "border-gold bg-gold/10 text-ink"
-                  : "border-sand bg-white text-ink/30"
-              }`}
-            >
-              {b.label}
-            </div>
-          ))}
-        </div>
+        <Goals />
       </div>
 
       <Link
         href="/tutor"
-        className="mt-8 block rounded-2xl border border-sand bg-white p-4 text-center font-semibold text-teal hover:border-teal"
+        className="mt-6 block rounded-2xl border border-sand bg-paper p-4 text-center font-semibold text-sage hover:border-sage"
       >
-        🎨 Customise your tutor
+        Change your tutor
       </Link>
 
       <div className="mt-8 text-center">
@@ -86,8 +89,8 @@ export default async function MePage() {
 
 function Stat({ value, label }: { value: number; label: string }) {
   return (
-    <div className="rounded-2xl border border-sand bg-white p-3">
-      <div className="text-2xl font-semibold text-teal">{value}</div>
+    <div className="rounded-2xl border border-sand bg-paper p-3">
+      <div className="font-display text-2xl text-sage">{value}</div>
       <div className="text-xs text-ink/60">{label}</div>
     </div>
   );

@@ -16,6 +16,7 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
           <span className="mr-2 font-semibold">Isabella · Year 10 · NSW</span>
           <NavLink href="/console" label="Overview" />
           <NavLink href="/console/transcripts" label="Sessions" />
+          <NavLink href="/console/coming-up" label="Coming up" />
           <NavLink href="/console/settings" label="Subjects &amp; settings" />
           <NavLink href="/console/safety" label="Safety" />
           <span className="ml-auto">
