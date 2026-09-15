@@ -30,11 +30,29 @@ export default function MyWorkPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Downscale before upload so big phone photos don't exceed the request limit.
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => setImage(reader.result as string);
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 1600;
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return setImage(reader.result as string);
+        ctx.drawImage(img, 0, 0, w, h);
+        setImage(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      img.onerror = () => setImage(reader.result as string);
+      img.src = reader.result as string;
+    };
     reader.readAsDataURL(file);
   }
 

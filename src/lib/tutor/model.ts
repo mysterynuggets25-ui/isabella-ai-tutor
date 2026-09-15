@@ -107,7 +107,10 @@ async function complete(opts: {
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const model = opts.tier === "adhoc" ? ANTHROPIC_ADHOC : ANTHROPIC_SESSION;
-  const messages: Anthropic.MessageParam[] = opts.messages.map((m) => ({
+  // Claude requires the first message to be from the user. After a proactive
+  // opener the stored history starts with the tutor (assistant), so guard it.
+  const src = opts.messages[0]?.role === "assistant" ? [{ role: "user" as const, text: "Let's carry on." }, ...opts.messages] : opts.messages;
+  const messages: Anthropic.MessageParam[] = src.map((m) => ({
     role: m.role,
     content: m.image
       ? [

@@ -1,5 +1,18 @@
 # Progress
 
+## 2026-09-16 (c) — Phase 4: weekly note, cost cap, export/delete, rollover
+- **Weekly parent note**: `generateWeeklyNote` + `/api/cron/weekly-note` (Vercel cron Sun 09:00 UTC
+  + "Write this week's note" button on console Overview; dual auth secret-or-parent). Verified: real
+  plain-language note built from her memory (netball, fractional scaling).
+- **Usage + cost cap**: `model.ts` records per-call token cost into `usage_monthly` (**migration
+  0004 — Sarah runs SQL**); `/api/tutor` responds gracefully when `settings.monthly_cap_usd` is hit;
+  console Overview shows $spent/cap this month. Safe pre-migration (recordUsage no-ops, cost reads 0).
+- **Data & privacy** console page (`/console/data`): export all her data as JSON
+  (`/api/console/export`), hard-delete with typed DELETE (`/api/console/delete`), roll over to next
+  school year (sets year_level + age). Added "Data" to console nav.
+- Handover rewritten to full current state; committed + deployed + backed up + **pushed to GitHub**.
+- ALL PHASES (1-4) now built. Remaining polish only (Word/PDF upload extraction, streaming, etc.).
+
 ## 2026-09-16 (b) — Switched to OpenAI + push table live
 - **Now running on OpenAI** `gpt-4o-mini` (incl. vision). `model.ts` picks OpenAI when
   `OPENAI_API_KEY` is set (it is, in Vercel prod + local), else Claude. Verified live: proactive

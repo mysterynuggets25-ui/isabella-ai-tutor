@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUserRole } from "@/lib/auth";
-import { markWork } from "@/lib/tutor/model";
+import { markWork, monthlyCostUsd } from "@/lib/tutor/model";
 import { curriculumReference } from "@/lib/curriculum";
 
 export const runtime = "nodejs";
@@ -21,8 +21,16 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = await createClient();
-  const { data: subject } = await supabase.from("subjects").select("name,active").eq("key", subjectKey).single();
+  const [{ data: subject }, { data: settings }] = await Promise.all([
+    supabase.from("subjects").select("name,active").eq("key", subjectKey).single(),
+    supabase.from("settings").select("monthly_cap_usd").eq("id", 1).single(),
+  ]);
   if (!subject?.active) return NextResponse.json({ error: "Subject not available" }, { status: 400 });
+
+  const cap = Number(settings?.monthly_cap_usd ?? 0);
+  if (cap > 0 && (await monthlyCostUsd()) >= cap) {
+    return NextResponse.json({ error: "We've reached this month's limit. Ask Mum to lift it if you'd like more." }, { status: 429 });
+  }
 
   // Parse a data URL (data:image/png;base64,....) into media type + base64.
   let image: { mediaType: string; data: string } | undefined;

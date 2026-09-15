@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import AckFlagButton from "@/components/AckFlagButton";
 
 // Safety flags. When Isabella raises self-harm, abuse, bullying or serious
 // distress, the tutor gives a safe response and the moment is surfaced here.
@@ -26,21 +27,22 @@ export default async function SafetyPage() {
               f.acknowledged_at ? "border-sand" : "border-coral bg-coral/5"
             }`}
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <span className="font-medium capitalize">{f.category.replace("_", " ")}</span>
-              <span className="text-xs text-ink/50">
-                {new Date(f.created_at).toLocaleString("en-AU")}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-ink/50">{new Date(f.created_at).toLocaleString("en-AU")}</span>
+                {!f.acknowledged_at && <AckFlagButton id={f.id} />}
+              </div>
             </div>
             {f.excerpt && <p className="mt-2 text-sm text-ink/70">“{f.excerpt}”</p>}
-            {f.session_id && (
-              <Link
-                href={`/console/transcripts/${f.session_id}`}
-                className="mt-2 inline-block text-sm text-teal hover:underline"
-              >
-                Open the session
-              </Link>
-            )}
+            <div className="mt-2 flex items-center gap-3">
+              {f.session_id && (
+                <Link href={`/console/transcripts/${f.session_id}`} className="text-sm text-teal hover:underline">
+                  Open the session
+                </Link>
+              )}
+              {f.acknowledged_at && <span className="text-xs text-ink/40">Seen</span>}
+            </div>
           </div>
         ))}
         {(!flags || flags.length === 0) && (
