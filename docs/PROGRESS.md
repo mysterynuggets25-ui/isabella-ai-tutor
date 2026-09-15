@@ -1,5 +1,19 @@
 # Progress
 
+## 2026-09-15 (late night) — My work, Cheat sheets, proactive lesson plans, calendar upcoming
+- **My work** (`/work`, `/api/work` + `markWork`): upload a photo (Claude vision) or paste text →
+  "what's working" + EXACTLY two fixes, no rewrite, marked to NESA. Verified (essay → 2 coaching fixes).
+- **Cheat sheets** (`/cheat-sheets`, `/api/cheatsheet` + `generateCheatSheet`): built from her profile
+  + notes → personalised facts, why, "the one you keep missing" (her real error), NSW wording;
+  styleable (warm/notebook/minimal) + print CSS. Verified (ratios sheet used netball + her exact error).
+- **Proactive lesson plans**: tutor now LEADS. `/api/tutor` `start` flow → the first message is a plan
+  grounded in profile (how she learns + struggles), `next_focus` set at end of last session, and
+  upcoming assessments. `summariseSession` outputs `next_focus` (stored in `dimensions._next_focus`).
+  Verified: maths opener proposed equivalent-ratios/non-integer scaling using her netball interest.
+- **Calendar Upcoming**: scheduled tutor classes (with planned topic) + assessments/exams, merged +
+  sorted, class/exam/due badges, Join/Prep buttons. Verified.
+- All 8 learner sections now built (Home, Subjects, Calendar, My work, Cheat sheets, My corner).
+
 ## 2026-09-15 (night) — Voice input + tutor memory / self-learning
 - **Voice input** (`useSpeechInput`, Web Speech API): a "Talk" mic in the call transcribes her
   speech and sends it. Desktop Chrome/Edge only (hidden on Safari/iOS → keyboard mic). Sarah is on a

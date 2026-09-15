@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import TutorCharacter from "@/components/TutorCharacter";
 import Goals from "@/components/Goals";
+import Reminders from "@/components/Reminders";
 import SignOutButton from "@/components/SignOutButton";
 import type { Animal } from "@/lib/persona";
 import { computeStreak } from "@/lib/streak";
@@ -73,6 +74,10 @@ export default async function MyCornerPage() {
 
       <div className="mt-6">
         <Goals />
+      </div>
+
+      <div className="mt-6">
+        <Reminders />
       </div>
 
       <Link
