@@ -57,11 +57,15 @@ export function buildTutorPrompt(opts: {
   tutorName?: string;
   plannedFocus?: string;
   upcoming?: string;
+  parentGuidance?: string;
+  parentNotes?: string[];
 }): string {
   const { settings, subject, profile, mode, curriculumReference } = opts;
   const tutorName = (opts.tutorName || "Mia").trim();
   const plannedFocus = opts.plannedFocus?.trim();
   const upcoming = opts.upcoming?.trim();
+  const parentGuidance = opts.parentGuidance?.trim();
+  const parentNotes = (opts.parentNotes ?? []).map((n) => n.trim()).filter(Boolean);
 
   const arc =
     mode === "scheduled"
@@ -88,6 +92,16 @@ Keep an eye on the time. The session is meant to feel finite, not open-ended.`
 - Observed patterns: ${JSON.stringify(profile.dimensions ?? {})}
 Use this to adapt. If nothing is recorded yet, start gently and find her level in conversation, never with a test.`
     : `You have no history for ${subject.name} yet. Start gently, find her level in conversation, never with a test.`;
+
+  // Standing guidance and notes from Isabella's parent. The parent knows things
+  // you don't (home life, how she's feeling, what matters right now). Weight this
+  // heavily, act on it warmly, and never mention it to Isabella or reveal that
+  // her parent set it.
+  const parentBlock =
+    parentGuidance || parentNotes.length
+      ? `\nFROM ISABELLA'S PARENT (follow this — they know her best; never tell her these came from her parent):
+${parentGuidance ? `- Standing guidance for ${subject.name}: ${parentGuidance}` : ""}${parentNotes.length ? `\n${parentNotes.map((n) => `- ${n}`).join("\n")}` : ""}`
+      : "";
 
   return `You are ${tutorName}, Isabella's tutor for ${subject.name} (${subject.level} level).
 Isabella is ${settings.age}, in ${settings.year_level}, ${settings.curriculum} curriculum, at a ${settings.school_context}.
@@ -125,6 +139,7 @@ ${arc}
 - You can be wrong sometimes. Tell her to push back if something looks off. That is a good habit.
 
 ${profileBlock}
+${parentBlock}
 
 HOW SHE LEARNS BEST (this is what has actually worked for her — follow it)
 - Task first. She learns best from her real work — a worksheet, assessment brief, draft, dataset, screenshot. Start from the actual task, not a generic lecture. Read the exact wording, spot the command word (identify / describe / explain / compare / analyse / evaluate) and answer at that depth and length. Notice answer-space limits.

@@ -1,5 +1,21 @@
 # Progress
 
+## 2026-09-16 (e) — Parent-managed memory (brain visible + editable by Sarah)
+The tutor's brain (learner_profile + profile_notes) was auto-managed only and read-only in the
+console. Now Sarah can manage it too, alongside the auto-updates:
+- **Migration 0006 (Sarah runs SQL)**: `learner_profile.parent_guidance` (a standing note to the
+  tutor per subject, never overwritten by sessions) + `profile_notes.source` ('tutor' | 'parent').
+- **Console → Memory is now editable** (`MemoryEditor.tsx`): per subject, edit the standing note to
+  the tutor, the summary, working level, observed patterns (add/edit/delete), and notes (add/delete,
+  parent notes badged "you"). Shows all active subjects so she can seed memory before any session.
+- **Reaches the tutor**: `prompt.ts` injects a "FROM ISABELLA'S PARENT" block (weighted heavily,
+  never revealed to Isabella); `/api/tutor` loads parent_guidance + parent notes (service-role read,
+  since the learner has no RLS access to notes and must never see them).
+- **Auto-manage still wins for its own fields**: the session summariser keeps updating summary/level/
+  dimensions; it never touches parent_guidance, and parent notes are never auto-created or deleted.
+- `/api/console/memory` (parent-only) handles save / add_note / delete_note. Degrades safely
+  pre-migration (missing-column reads return empty). Verified: `npm run build` clean.
+
 ## 2026-09-16 (d) — Education Brain integration (how Isabella actually studies)
 Adapted the system to the detailed ChatGPT "Personal Education Brain" profile Isabella has been
 studying from, in three parts:

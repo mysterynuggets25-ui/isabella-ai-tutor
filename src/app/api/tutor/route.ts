@@ -39,6 +39,19 @@ export async function POST(req: NextRequest) {
     supabase.from("assessments").select("title,due_date,subject_key,next_step").eq("done", false).order("due_date").limit(6),
   ]);
 
+  // Standing notes the parent wrote for the tutor. Read with the service role:
+  // the learner has no RLS access to profile_notes, and these must never be
+  // shown to Isabella — only fed into the system prompt.
+  const { data: pNotes } = await createServiceClient()
+    .from("profile_notes")
+    .select("note")
+    .eq("subject_key", subjectKey)
+    .eq("source", "parent")
+    .order("created_at", { ascending: false })
+    .limit(6);
+  const parentNotes = (pNotes ?? []).map((n) => n.note as string);
+  const parentGuidance = (profile as { parent_guidance?: string } | null)?.parent_guidance ?? undefined;
+
   if (!settings || !subject || !subject.active) {
     return NextResponse.json({ error: "Subject not available" }, { status: 400 });
   }
@@ -73,6 +86,8 @@ export async function POST(req: NextRequest) {
       tutorName,
       plannedFocus,
       upcoming,
+      parentGuidance,
+      parentNotes,
     });
 
   // Start a session if needed.
