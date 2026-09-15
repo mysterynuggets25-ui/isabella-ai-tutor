@@ -50,3 +50,17 @@ h2,
   font-family: var(--font-display);
   letter-spacing: -0.01em;
 }
+
+/* Printing a cheat sheet: just the sheet, on white. */
+@media print {
+  aside,
+  nav {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+  main {
+    padding: 0 !important;
+  }
+}

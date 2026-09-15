@@ -44,6 +44,105 @@ export async function runTutor(opts: {
     .trim();
 }
 
+// One printable cheat sheet per topic, built from HER own history (what she
+// keeps missing comes from her real errors), grounded in NSW exam phrasing.
+export async function generateCheatSheet(opts: {
+  subjectName: string;
+  topic?: string;
+  criteria?: string;
+  profileSummary?: string | null;
+  dimensions?: Record<string, unknown>;
+  notes?: string[];
+}): Promise<{ title: string; facts: string[]; why: string; keepMissing: string; phrasing: string[] }> {
+  const anthropic = client();
+  const history = [
+    opts.profileSummary ? `Summary: ${opts.profileSummary}` : "",
+    Object.keys(opts.dimensions ?? {}).length ? `How she works: ${JSON.stringify(opts.dimensions)}` : "",
+    opts.notes?.length ? `Recent session notes:\n- ${opts.notes.join("\n- ")}` : "",
+  ].filter(Boolean).join("\n");
+
+  const res = await anthropic.messages.create({
+    model: ADHOC_MODEL,
+    max_tokens: 700,
+    system: `You make a single printable cheat sheet for Isabella's Year 10 ${opts.subjectName}${opts.topic ? ` on: ${opts.topic}` : ""}.
+Build it from HER history so it is personal, not generic. Return STRICT JSON only:
+{"title": string, "facts": string[], "why": string, "keepMissing": string, "phrasing": string[]}
+- title: the topic, short.
+- facts: 4 to 7 core facts/formulas she needs, each one line.
+- why: one line on why it works / the intuition.
+- keepMissing: the one thing SHE keeps getting wrong, drawn from her real errors in the notes (if none known, the most common trap for this topic).
+- phrasing: 2 to 4 exact phrases / command words used in NSW exam questions for this topic.
+${opts.criteria ? `Ground in: ${opts.criteria}` : ""}
+No prose outside the JSON.`,
+    messages: [{ role: "user", content: history || "No history yet; make a solid general cheat sheet for the topic." }],
+  });
+
+  const raw = res.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join("");
+  try {
+    const j = JSON.parse(raw.replace(/^```json\s*|\s*```$/g, ""));
+    return {
+      title: String(j.title ?? opts.subjectName),
+      facts: Array.isArray(j.facts) ? j.facts.map(String) : [],
+      why: String(j.why ?? ""),
+      keepMissing: String(j.keepMissing ?? ""),
+      phrasing: Array.isArray(j.phrasing) ? j.phrasing.map(String) : [],
+    };
+  } catch {
+    return { title: opts.subjectName, facts: [], why: raw.slice(0, 200), keepMissing: "", phrasing: [] };
+  }
+}
+
+// Mark a piece of work she has already done. The hard rule holds: it says what
+// is working and gives EXACTLY two things to fix, and it never rewrites her
+// work. A photo is read directly (Claude vision); text is marked as text.
+export async function markWork(opts: {
+  subjectName: string;
+  criteria?: string;
+  text?: string;
+  image?: { mediaType: string; data: string }; // base64 (no data: prefix)
+}): Promise<{ working: string; fixes: string[] }> {
+  const anthropic = client();
+
+  const content: Anthropic.MessageParam["content"] = [];
+  if (opts.image) {
+    content.push({
+      type: "image",
+      source: { type: "base64", media_type: opts.image.mediaType as "image/png", data: opts.image.data },
+    });
+  }
+  content.push({
+    type: "text",
+    text: opts.text?.trim()
+      ? `Here is my ${opts.subjectName} work:\n\n${opts.text.trim()}`
+      : `Here is a photo of my ${opts.subjectName} work. Read it and mark it.`,
+  });
+
+  const res = await anthropic.messages.create({
+    model: SESSION_MODEL,
+    max_tokens: 700,
+    system: `You mark Isabella's Year 10 ${opts.subjectName} work against the NSW/NESA marking criteria.
+THE ONE RULE: never rewrite her work, and never write sentences or a worked solution she could copy in. You point, you do not fix.
+Return STRICT JSON only: {"working": string, "fixes": string[]}.
+- working: 2 to 3 warm, specific sentences on what is genuinely good and why (name the actual thing she did).
+- fixes: EXACTLY TWO items. Each names one specific thing to improve and how to think about it, WITHOUT doing it for her. Two, never more — a page of corrections is why teenagers stop asking for feedback.
+${opts.criteria ? `Mark against: ${opts.criteria}` : ""}
+No prose outside the JSON.`,
+    messages: [{ role: "user", content }],
+  });
+
+  const raw = res.content
+    .filter((b): b is Anthropic.TextBlock => b.type === "text")
+    .map((b) => b.text)
+    .join("");
+  try {
+    const json = JSON.parse(raw.replace(/^```json\s*|\s*```$/g, ""));
+    const fixes = Array.isArray(json.fixes) ? json.fixes.slice(0, 2).map(String) : [];
+    return { working: String(json.working ?? ""), fixes };
+  } catch {
+    return { working: raw.slice(0, 300), fixes: [] };
+  }
+}
+
 // Summarise a finished session into a short structured note for the learner
 // profile. Uses the cheap model — this keeps the profile (and therefore every
 // future prompt) small.

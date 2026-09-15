@@ -9,9 +9,19 @@ const BUILT = [
   { href: "/", label: "Home" },
   { href: "/subjects", label: "Subjects" },
   { href: "/calendar", label: "Calendar" },
+  { href: "/work", label: "My work" },
+  { href: "/cheat-sheets", label: "Cheat sheets" },
   { href: "/me", label: "My corner" },
 ];
-const SOON = ["My work", "Cheat sheets"];
+const SOON: string[] = [];
+// Shorter labels so the phone bar doesn't overflow.
+const MOBILE = [
+  { href: "/", label: "Home" },
+  { href: "/subjects", label: "Subjects" },
+  { href: "/calendar", label: "Calendar" },
+  { href: "/work", label: "Work" },
+  { href: "/me", label: "Corner" },
+];
 
 // Desktop: a calm left sidebar (the mockup layout). Mobile: a bottom bar.
 export default function LearnerNav() {
@@ -51,11 +61,11 @@ export default function LearnerNav() {
 
       {/* Mobile bottom bar */}
       <nav className="fixed inset-x-0 bottom-0 z-10 flex items-center justify-around border-t border-sand bg-cream/95 py-3 backdrop-blur md:hidden">
-        {BUILT.map((n) => (
+        {MOBILE.map((n) => (
           <Link
             key={n.href}
             href={n.href}
-            className={`rounded-full px-4 py-1 text-sm ${
+            className={`rounded-full px-3 py-1 text-xs ${
               isActive(n.href) ? "font-semibold text-sage" : "text-ink/60"
             }`}
           >

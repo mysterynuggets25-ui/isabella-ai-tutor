@@ -1,5 +1,18 @@
 # Progress
 
+## 2026-09-15 (night) — Voice input + tutor memory / self-learning
+- **Voice input** (`useSpeechInput`, Web Speech API): a "Talk" mic in the call transcribes her
+  speech and sends it. Desktop Chrome/Edge only (hidden on Safari/iOS → keyboard mic). Sarah is on a
+  computer + chose free browser voice, so: **use Chrome** for the Talk button; "Hear a hello" in the
+  customiser is the reliable output test (verified speaking=true on a real tap; silence = device volume).
+- **Tutor memory + self-learning**: `summariseSession` now reads prior beliefs and extracts structured
+  `dimensions` (hint_need, entry_point, engages_with, struggles_with, pace, interests, recovery,
+  confidence); session-end **merges** them into `learner_profile.dimensions` (accumulates + refines).
+  The prompt already reads dimensions, so tutoring gets steadily more tailored. **Verified**: one real
+  session populated maths dims (interests=netball, struggles_with=non-integer scaling, etc.).
+- New **console Memory page** (`/console/memory`): per-subject level, rolling summary, how-she-works
+  dimensions, recent notes. Detailed memory kept parent-side (spec's surveillance-feeling caution).
+
 ## 2026-09-15 (late) — Clothed character, Calendar + streak, voice hardening
 - **Character now has clothes + a body** (`TutorCharacter` `full` mode: dungarees, straps, buttons,
   pocket, arms). Used big in the **call so it fills the screen** like the mock, plus lobby + customiser.
