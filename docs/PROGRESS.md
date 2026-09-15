@@ -1,5 +1,18 @@
 # Progress
 
+## 2026-09-16 — Warmer dashboard + push notifications
+- **Home redesigned** (was "too plain"): Penny (full character) on the hero, streak chip, sanctuary
+  peek, later-this-week, quick tiles. Alive + personal, still one clear "Start here".
+- **Push notifications** (session reminders): `public/sw.js` service worker, VAPID keys generated +
+  set in Vercel (NEXT_PUBLIC_VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY/VAPID_SUBJECT) + CRON_SECRET;
+  `/api/push/subscribe` (POST/DELETE), daily `/api/cron/reminders` (Sydney session-day aware, prunes
+  dead subs) via `vercel.json` cron (21:00 UTC ≈ 7-8am AEST); "Session reminders" toggle in My corner
+  (`Reminders.tsx`). **NEEDS migration 0003 (push_subscriptions)** — Sarah runs the SQL to enable.
+  Web Push works desktop Chrome; iPhone only once added to home screen.
+- Model/cost note: told Sarah subscriptions (ChatGPT/Claude) can't power the app (API only, pay-per-use).
+  OpenAI gpt-4o-mini ~5x cheaper/token than Haiku but only $1-3/mo saving; offered to wire it (needs her
+  OpenAI key). Awaiting her decision — adapter is `src/lib/tutor/model.ts` (currently Anthropic only).
+
 ## 2026-09-15 (late night) — My work, Cheat sheets, proactive lesson plans, calendar upcoming
 - **My work** (`/work`, `/api/work` + `markWork`): upload a photo (Claude vision) or paste text →
   "what's working" + EXACTLY two fixes, no rewrite, marked to NESA. Verified (essay → 2 coaching fixes).
