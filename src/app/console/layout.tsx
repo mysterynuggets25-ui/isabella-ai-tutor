@@ -17,6 +17,7 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
           <NavLink href="/console" label="Overview" />
           <NavLink href="/console/transcripts" label="Sessions" />
           <NavLink href="/console/coming-up" label="Coming up" />
+          <NavLink href="/console/memory" label="Memory" />
           <NavLink href="/console/settings" label="Subjects &amp; settings" />
           <NavLink href="/console/safety" label="Safety" />
           <span className="ml-auto">

@@ -35,6 +35,14 @@ export async function POST(req: NextRequest) {
     .eq("key", session.subject_key)
     .single();
 
+  // What the tutor already remembers about her in this subject.
+  const { data: priorProfile } = await supabase
+    .from("learner_profile")
+    .select("dimensions")
+    .eq("subject_key", session.subject_key)
+    .maybeSingle();
+  const priorDimensions = (priorProfile?.dimensions as Record<string, unknown>) ?? {};
+
   const { data: history } = await supabase
     .from("messages")
     .select("role,content")
@@ -48,14 +56,17 @@ export async function POST(req: NextRequest) {
   let note = "";
   let summary = "";
   let level_estimate = "";
+  let dimensions: Record<string, string> = {};
   try {
     const s = await summariseSession({
       subjectName: subject?.name ?? session.subject_key,
       transcript,
+      priorDimensions,
     });
     note = s.note;
     summary = s.summary;
     level_estimate = s.level_estimate;
+    dimensions = s.dimensions;
   } catch {
     // If summarisation fails, still close the session cleanly.
   }
@@ -68,6 +79,9 @@ export async function POST(req: NextRequest) {
       session_id: sessionId,
       note,
     });
+    // Merge the new learning into the tutor's evolving memory (new beliefs win
+    // per key, prior beliefs are kept).
+    const mergedDimensions = { ...priorDimensions, ...dimensions };
     await service
       .from("learner_profile")
       .upsert(
@@ -75,6 +89,7 @@ export async function POST(req: NextRequest) {
           subject_key: session.subject_key,
           summary: summary || undefined,
           level_estimate: level_estimate || undefined,
+          dimensions: mergedDimensions,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "subject_key" },
