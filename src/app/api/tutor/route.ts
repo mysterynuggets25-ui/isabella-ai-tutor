@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     supabase.from("settings").select("*").eq("id", 1).single(),
     supabase.from("subjects").select("key,name,level,active").eq("key", subjectKey).single(),
     supabase.from("learner_profile").select("*").eq("subject_key", subjectKey).maybeSingle(),
-    supabase.from("assessments").select("title,due_date,subject_key").eq("done", false).order("due_date").limit(6),
+    supabase.from("assessments").select("title,due_date,subject_key,next_step").eq("done", false).order("due_date").limit(6),
   ]);
 
   if (!settings || !subject || !subject.active) {
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
   const plannedFocus = typeof dims._next_focus === "string" ? dims._next_focus : undefined;
   const upcoming = (dueRows ?? [])
     .filter((d) => d.due_date)
-    .map((d) => `${d.title}${d.subject_key ? ` (${d.subject_key})` : ""} due ${d.due_date}`)
+    .map((d) => `${d.title}${d.subject_key ? ` (${d.subject_key})` : ""} due ${d.due_date}${d.next_step ? ` — ${d.next_step.slice(0, 160)}` : ""}`)
     .join("; ") || undefined;
 
   // Monthly cost cap. When hit, respond gracefully instead of calling the model.

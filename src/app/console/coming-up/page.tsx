@@ -61,10 +61,22 @@ export default function ConsoleComingUp() {
     load();
   }
 
+  async function syncCanvas() {
+    setSaving(true);
+    await fetch("/api/canvas/sync").catch(() => {});
+    setSaving(false);
+    load();
+  }
+
   return (
     <div>
-      <h1 className="text-xl font-semibold">Coming up</h1>
-      <p className="mt-1 text-sm text-ink/60">Add what she has due. She sees the next step, not a pile.</p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-xl font-semibold">Coming up</h1>
+        <button onClick={syncCanvas} disabled={saving} className="rounded-full border border-sand px-4 py-1.5 text-xs font-semibold text-ink/70 hover:border-teal disabled:opacity-50">
+          {saving ? "Syncing…" : "↻ Sync from Canvas"}
+        </button>
+      </div>
+      <p className="mt-1 text-sm text-ink/60">Assessments sync from Canvas automatically. Add anything extra here.</p>
 
       <form onSubmit={add} className="mt-5 grid gap-3 rounded-xl border border-sand p-4 sm:grid-cols-2">
         <select
