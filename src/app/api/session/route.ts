@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
   let level_estimate = "";
   let dimensions: Record<string, string> = {};
   let nextFocus = "";
+  let concern = "";
   try {
     const s = await summariseSession({
       subjectName: subject?.name ?? session.subject_key,
@@ -69,11 +70,22 @@ export async function POST(req: NextRequest) {
     level_estimate = s.level_estimate;
     dimensions = s.dimensions;
     nextFocus = s.next_focus;
+    concern = s.concern;
   } catch {
     // If summarisation fails, still close the session cleanly.
   }
 
   const service = createServiceClient();
+
+  // A gentle wellbeing/social concern for the parent (not a crisis — those are
+  // separate). Surfaced in the console Wellbeing view.
+  if (concern.trim()) {
+    await service.from("safety_flags").insert({
+      session_id: sessionId,
+      category: "concern",
+      excerpt: concern.trim(),
+    });
+  }
 
   if (note) {
     await service.from("profile_notes").insert({

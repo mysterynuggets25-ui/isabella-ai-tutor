@@ -14,9 +14,10 @@ export default async function SafetyPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-semibold">Safety</h1>
+      <h1 className="text-xl font-semibold">Wellbeing &amp; safety</h1>
       <p className="mt-1 text-sm text-ink/60">
-        If Isabella is in immediate danger, call 000. Kids Helpline 1800 55 1800 · Lifeline 13 11 14.
+        Gentle concerns the tutor noticed (mood, confidence, social) sit here alongside any urgent safety
+        flags. If Isabella is in immediate danger, call 000. Kids Helpline 1800 55 1800 · Lifeline 13 11 14.
       </p>
 
       <div className="mt-6 space-y-3">
@@ -24,11 +25,11 @@ export default async function SafetyPage() {
           <div
             key={f.id}
             className={`rounded-xl border p-4 ${
-              f.acknowledged_at ? "border-sand" : "border-coral bg-coral/5"
+              f.acknowledged_at ? "border-sand" : f.category === "concern" ? "border-gold bg-gold/5" : "border-coral bg-coral/5"
             }`}
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="font-medium capitalize">{f.category.replace("_", " ")}</span>
+              <span className="font-medium capitalize">{f.category === "concern" ? "Wellbeing concern" : f.category.replace("_", " ")}</span>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-ink/50">{new Date(f.created_at).toLocaleString("en-AU")}</span>
                 {!f.acknowledged_at && <AckFlagButton id={f.id} />}

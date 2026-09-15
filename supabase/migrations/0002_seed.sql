@@ -3,8 +3,8 @@
 -- Sarah flips the rest on from the console when ready.
 
 insert into subjects (key, name, blurb, active, level, sort_order) values
-  ('maths',        'General Maths',    'Number, algebra, trig',      true,  'standard', 1),
-  ('english',      'Standard English', 'Essays, texts, analysis',    true,  'standard', 2),
+  ('maths',        'Maths',            'Number, algebra, trig',      true,  'standard', 1),
+  ('english',      'English',          'Essays, texts, analysis',    true,  'standard', 2),
   ('science',      'Science',          'Chemistry, biology, physics', false, 'standard', 3),
   ('hsie',         'HSIE',             'History and geography',       false, 'standard', 4),
   ('pdhpe',        'PDHPE',            'Health and movement',         false, 'standard', 5),

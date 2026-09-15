@@ -15,12 +15,14 @@ export default function TutorCharacter({
   size = 128,
   look,
   full = false,
+  mood = "idle",
 }: {
   speaking?: boolean;
   thinking?: boolean;
   size?: number;
   look?: { animal: Animal; color: string };
   full?: boolean; // draw the body + dungarees (for the call / big previews)
+  mood?: "idle" | "happy" | "proud" | "sleepy"; // gentle expression states
 }) {
   const [resolved, setResolved] = useState<{ animal: Animal; color: string }>(
     look ?? { animal: DEFAULT_PERSONA.animal, color: DEFAULT_PERSONA.color },
@@ -62,9 +64,12 @@ export default function TutorCharacter({
   }, [speaking]);
 
   const { animal, color } = resolved;
-  const eyeRy = blink ? 0.8 : (animal === "owl" ? 12 : 7);
+  const happy = mood === "happy" || mood === "proud";
+  const eyeRy = blink || mood === "sleepy" ? (mood === "sleepy" ? 1.4 : 0.8) : happy ? 5 : animal === "owl" ? 12 : 7;
   const eyeRx = animal === "owl" ? 12 : 7;
   const open = mouthOpen;
+  const smile = happy ? 1.9 : mood === "sleepy" ? 0.3 : 1; // resting-mouth curve depth
+  const blushO = happy ? 0.75 : 0.5;
 
   const OVERALL = "#5f6f52";
   const OVERALL_DK = "#4f5c3d";
@@ -187,6 +192,14 @@ export default function TutorCharacter({
         </>
       )}
 
+      {/* Blush when happy/proud */}
+      {happy && (
+        <>
+          <circle cx="70" cy="120" r="7" fill="#f0a085" opacity={blushO} />
+          <circle cx="130" cy="120" r="7" fill="#f0a085" opacity={blushO} />
+        </>
+      )}
+
       {/* Nose / beak + mouth */}
       {animal === "pig" ? (
         <>
@@ -194,7 +207,7 @@ export default function TutorCharacter({
           <ellipse cx="92" cy="130" rx="4" ry="6" fill={DARK} />
           <ellipse cx="108" cy="130" rx="4" ry="6" fill={DARK} />
           {open < 0.15 ? (
-            <path d="M86 150 q14 8 28 0" fill="none" stroke={DARK} strokeWidth="2.5" strokeLinecap="round" />
+            <path d={`M86 150 q14 ${8 * smile} 28 0`} fill="none" stroke={DARK} strokeWidth="2.5" strokeLinecap="round" />
           ) : (
             <ellipse cx="100" cy={152} rx={8 - open * 2} ry={2 + open * 6} fill="#7a3b32" />
           )}
@@ -205,7 +218,7 @@ export default function TutorCharacter({
         <>
           <path d="M100 132 l-9 -8 h18 Z" fill={DARK} />
           {open < 0.15 ? (
-            <path d="M100 140 q-10 8 -18 2 M100 140 q10 8 18 2" fill="none" stroke={DARK} strokeWidth="2.5" strokeLinecap="round" />
+            <path d={`M100 140 q-10 ${8 * smile} -18 2 M100 140 q10 ${8 * smile} 18 2`} fill="none" stroke={DARK} strokeWidth="2.5" strokeLinecap="round" />
           ) : (
             <ellipse cx="100" cy={146} rx={7 - open * 2} ry={2 + open * 7} fill="#7a3b32" />
           )}

@@ -10,7 +10,6 @@ const BUILT = [
   { href: "/subjects", label: "Subjects" },
   { href: "/calendar", label: "Calendar" },
   { href: "/work", label: "My work" },
-  { href: "/cheat-sheets", label: "Cheat sheets" },
   { href: "/me", label: "My corner" },
 ];
 const SOON: string[] = [];

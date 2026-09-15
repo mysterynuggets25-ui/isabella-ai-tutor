@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { classScheduled } from "@/lib/holidays";
+import { getEvents, saveEvents, type PersonalEvent } from "@/lib/events";
 
 const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DAY_FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -13,7 +15,8 @@ type Subject = { key: string; name: string };
 type Ev =
   | { kind: "exam" | "quiz" | "assessment"; title: string; subjectKey: string | null; details: string | null }
   | { kind: "class"; title: string; subjectKey: string }
-  | { kind: "holiday"; title: string };
+  | { kind: "holiday"; title: string }
+  | { kind: "mine"; title: string; eventId: string };
 
 function key(y: number, m: number, d: number) {
   return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
@@ -32,6 +35,7 @@ const STYLE: Record<string, { chip: string; badge: string; emoji: string; label:
   assessment: { chip: "bg-terracotta/15 text-terracotta-deep", badge: "bg-terracotta/15 text-terracotta-deep", emoji: "📄", label: "Assessment" },
   class: { chip: "bg-sage/15 text-sage-deep", badge: "bg-sage/15 text-sage-deep", emoji: "🎓", label: "Lesson" },
   holiday: { chip: "bg-gold/15 text-ink/50", badge: "bg-gold/15 text-ink/50", emoji: "🌴", label: "Holiday" },
+  mine: { chip: "bg-sage/25 text-sage-deep", badge: "bg-sage/25 text-sage-deep", emoji: "📌", label: "Mine" },
 };
 
 export default function CalendarBoard({
@@ -42,6 +46,7 @@ export default function CalendarBoard({
   holidays,
   streak,
   best,
+  holidayMode = "reduced",
 }: {
   activeDays: string[];
   sessionDays: string[];
@@ -50,7 +55,17 @@ export default function CalendarBoard({
   holidays: Holiday[];
   streak: number;
   best: number;
+  holidayMode?: "off" | "reduced" | "normal";
 }) {
+  const [personal, setPersonal] = useState<PersonalEvent[]>([]);
+  useEffect(() => setPersonal(getEvents()), []);
+  const [adding, setAdding] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+
+  function commitEvents(next: PersonalEvent[]) {
+    setPersonal(next);
+    saveEvents(next);
+  }
   const today = new Date();
   const [offset, setOffset] = useState(0); // months from current
   const view = new Date(today.getFullYear(), today.getMonth() + offset, 1);
@@ -73,14 +88,15 @@ export default function CalendarBoard({
     for (let d = 1; d <= daysInMonth; d++) {
       const date = new Date(year, month, d);
       const k = key(year, month, d);
-      if (subjects.length && sessionDays.includes(WD[date.getDay()])) {
+      if (subjects.length && classScheduled(k, WD[date.getDay()], sessionDays, holidayMode)) {
         const s = subjects[Math.floor(date.getTime() / 86_400_000) % subjects.length];
         push(k, { kind: "class", title: `${s.name}`, subjectKey: s.key });
       }
       for (const h of holidays) if (k >= h.start && k <= h.end) push(k, { kind: "holiday", title: h.label });
     }
+    for (const e of personal) push(e.date, { kind: "mine", title: e.title, eventId: e.id });
     return map;
-  }, [assessments, subjects, sessionDays, holidays, year, month]);
+  }, [assessments, subjects, sessionDays, holidays, year, month, personal, holidayMode]);
 
   const [selected, setSelected] = useState<string | null>(todayKey);
 
@@ -180,7 +196,7 @@ export default function CalendarBoard({
           })}
         </div>
         <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-sand px-1 pt-2 text-[10px] text-ink/50">
-          {(["class", "assessment", "quiz", "exam", "holiday"] as const).map((k) => (
+          {(["class", "assessment", "quiz", "exam", "mine", "holiday"] as const).map((k) => (
             <span key={k} className="flex items-center gap-1">{STYLE[k].emoji} {STYLE[k].label}</span>
           ))}
         </div>
@@ -188,9 +204,31 @@ export default function CalendarBoard({
 
       {/* Selected day detail */}
       <div className="mt-4 rounded-3xl border border-sand bg-paper p-5">
-        <h3 className="font-display text-lg">
-          {selected ? DAY_FULL[new Date(selected + "T00:00:00").getDay()] + " " + new Date(selected + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "long" }) : "Pick a day"}
-        </h3>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-display text-lg">
+            {selected ? DAY_FULL[new Date(selected + "T00:00:00").getDay()] + " " + new Date(selected + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "long" }) : "Pick a day"}
+          </h3>
+          {selected && (
+            <button onClick={() => setAdding((a) => !a)} className="shrink-0 rounded-full border border-sage px-3 py-1 text-xs font-semibold text-sage hover:bg-sage hover:text-white">
+              {adding ? "Cancel" : "+ Add yours"}
+            </button>
+          )}
+        </div>
+        {adding && selected && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!newTitle.trim()) return;
+              commitEvents([...personal, { id: crypto.randomUUID(), title: newTitle.trim(), date: selected }]);
+              setNewTitle("");
+              setAdding(false);
+            }}
+            className="mt-3 flex gap-2"
+          >
+            <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Your own reminder or note" className="flex-1 rounded-full border border-sand bg-cream px-4 py-2 text-sm outline-none focus:border-sage" />
+            <button type="submit" className="rounded-full bg-sage px-4 py-2 text-sm font-semibold text-white">Add</button>
+          </form>
+        )}
         {selectedEvents.length === 0 ? (
           <p className="mt-2 text-sm text-ink/55">Nothing on. A good day to get ahead, or take a break.</p>
         ) : (
@@ -212,6 +250,9 @@ export default function CalendarBoard({
                     >
                       {e.kind === "class" ? "Join" : "Prep with Penny"}
                     </Link>
+                  )}
+                  {e.kind === "mine" && (
+                    <button onClick={() => commitEvents(personal.filter((p) => p.id !== e.eventId))} className="shrink-0 text-lg text-ink/30 hover:text-terracotta-deep">✕</button>
                   )}
                 </div>
               </div>

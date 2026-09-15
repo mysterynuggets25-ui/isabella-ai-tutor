@@ -12,3 +12,17 @@ export function holidayOn(dateKey: string): string | null {
   for (const h of HOLIDAYS) if (dateKey >= h.start && dateKey <= h.end) return h.label;
   return null;
 }
+
+// Is a tutoring session scheduled on this day, given holiday mode?
+export function classScheduled(
+  dateKey: string,
+  weekday: string,
+  sessionDays: string[],
+  holidayMode: "off" | "reduced" | "normal" = "reduced",
+): boolean {
+  if (!sessionDays.includes(weekday)) return false;
+  if (!holidayOn(dateKey)) return true;
+  if (holidayMode === "off") return false;
+  if (holidayMode === "normal") return true;
+  return sessionDays[0] === weekday; // reduced: keep only the first session day of the week
+}

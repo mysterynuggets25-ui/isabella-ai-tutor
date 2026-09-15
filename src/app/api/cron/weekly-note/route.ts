@@ -19,14 +19,16 @@ export async function GET(req: NextRequest) {
   const service = createServiceClient();
   const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
 
-  const [{ data: sessions }, { data: notes }] = await Promise.all([
+  const [{ data: sessions }, { data: notes }, { data: concerns }] = await Promise.all([
     service.from("sessions").select("subject_key,summary,status,started_at").gte("started_at", weekAgo).order("started_at"),
     service.from("profile_notes").select("subject_key,note,created_at").gte("created_at", weekAgo).order("created_at"),
+    service.from("safety_flags").select("excerpt,created_at").eq("category", "concern").gte("created_at", weekAgo),
   ]);
 
   const digest = [
     ...(sessions ?? []).map((s) => `- ${s.subject_key}: ${s.summary || (s.status === "ended" ? "session done" : "session started")}`),
     ...(notes ?? []).map((n) => `  note (${n.subject_key}): ${n.note}`),
+    ...(concerns ?? []).map((c) => `  wellbeing concern: ${c.excerpt}`),
   ].join("\n");
 
   // Monday of this week (Sydney), as the note's key.

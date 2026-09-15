@@ -12,7 +12,7 @@ export default async function CalendarPage() {
   const supabase = await createClient();
   const [{ data: sessions }, { data: settings }, { data: due }, { data: subjects }] = await Promise.all([
     supabase.from("sessions").select("started_at").limit(2000),
-    supabase.from("settings").select("session_days").eq("id", 1).single(),
+    supabase.from("settings").select("*").eq("id", 1).single(),
     supabase.from("assessments").select("title,due_date,subject_key,next_step").eq("done", false).order("due_date"),
     supabase.from("subjects").select("key,name").eq("active", true).order("sort_order"),
   ]);
@@ -32,6 +32,7 @@ export default async function CalendarPage() {
           holidays={HOLIDAYS}
           streak={current}
           best={best}
+          holidayMode={settings?.holiday_mode ?? "reduced"}
         />
       </div>
     </div>

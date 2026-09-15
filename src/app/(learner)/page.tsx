@@ -2,8 +2,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import PersonaName from "@/components/PersonaName";
 import TutorCharacter from "@/components/TutorCharacter";
-import { computeStreak } from "@/lib/streak";
+import { computeStreak, dayKey } from "@/lib/streak";
 import { maybeSyncCanvas } from "@/lib/canvas";
+import { classScheduled, holidayOn } from "@/lib/holidays";
+import GoalNudge from "@/components/GoalNudge";
 import type { Animal } from "@/lib/persona";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -34,13 +36,14 @@ export default async function TodayPage() {
   await maybeSyncCanvas();
   const supabase = await createClient();
 
-  const [{ data: settings }, { data: subjects }, { data: sessions }, { data: due }, { data: profiles }] =
+  const [{ data: settings }, { data: subjects }, { data: sessions }, { data: due }, { data: profiles }, { data: finished }] =
     await Promise.all([
       supabase.from("settings").select("*").eq("id", 1).single(),
       supabase.from("subjects").select("key,name,blurb").eq("active", true).order("sort_order"),
       supabase.from("sessions").select("started_at,ended_at").limit(2000),
       supabase.from("assessments").select("title,due_date,subject_key,next_step").eq("done", false).order("due_date").limit(3),
       supabase.from("learner_profile").select("subject_key,dimensions"),
+      supabase.from("sessions").select("subject_key,ended_at").eq("status", "ended").order("ended_at", { ascending: false }).limit(3),
     ]);
 
   const active = subjects ?? [];
@@ -60,6 +63,8 @@ export default async function TodayPage() {
   const unlocked = Math.min([...perWeek.values()].filter((n) => n >= 3).length, SANCTUARY.length);
 
   const sessionDays: string[] = settings?.session_days ?? ["Tue", "Thu", "Sat"];
+  const holidayMode: "off" | "reduced" | "normal" = settings?.holiday_mode ?? "reduced";
+  const isHolidayToday = !!holidayOn(dayKey(now));
 
   // This week's activity (minutes/day) + the scheduled subject per day.
   const mondayThis = new Date(now);
@@ -74,14 +79,14 @@ export default async function TodayPage() {
       const en = s.ended_at ? new Date(s.ended_at) : null;
       return sum + (en ? Math.max(0, Math.min(90, (en.getTime() - st.getTime()) / 60000)) : 0);
     }, 0);
-    const scheduled = active.length > 0 && sessionDays.includes(DAYS[d.getDay()]);
+    const scheduled = active.length > 0 && classScheduled(dayKey(d), DAYS[d.getDay()], sessionDays, holidayMode);
     const subj = scheduled ? active[Math.floor(d.getTime() / 86_400_000) % active.length] : null;
     return { letter: DAYS[d.getDay()][0], mins: Math.round(mins), subjectKey: subj?.key ?? null, isToday: d.toDateString() === now.toDateString(), isFuture: d > now };
   });
   const maxMins = Math.max(30, ...weekDays.map((w) => w.mins));
   const totalMins = weekDays.reduce((s, w) => s + w.mins, 0);
 
-  const isSessionToday = sessionDays.map((d) => DAYS.indexOf(d)).includes(todayIdx);
+  const isSessionToday = classScheduled(dayKey(now), DAYS[todayIdx], sessionDays, holidayMode);
   const dayIndex = Math.floor(Date.now() / 86_400_000) % Math.max(active.length, 1);
   const focus = active[dayIndex] ?? active[0];
   const plan = focus
@@ -119,10 +124,10 @@ export default async function TodayPage() {
       <div className="overflow-hidden rounded-[2rem] bg-gradient-to-br from-sage to-sage-deep text-white shadow-sm">
         <div className="flex items-stretch">
           <div className="flex shrink-0 items-end overflow-hidden pl-1 pt-4 sm:pl-3">
-            <TutorCharacter size={116} full />
+            <TutorCharacter size={116} full mood={isHolidayToday ? "sleepy" : thisWeek >= 3 ? "happy" : "idle"} />
           </div>
           <div className="flex-1 p-5 sm:p-6">
-            <p className="text-xs uppercase tracking-[0.15em] text-white/60">{isSessionToday ? `Tonight · ${mins} min` : "Start here"}</p>
+            <p className="text-xs uppercase tracking-[0.15em] text-white/60">{isHolidayToday ? "Holidays" : isSessionToday ? `Tonight · ${mins} min` : "Start here"}</p>
             <h2 className="mt-1 text-xl leading-snug">{focus ? focus.name : "Pick a subject"} with <PersonaName /></h2>
             <p className="mt-1 line-clamp-2 text-sm text-white/75">{plan || focus?.blurb || "One thing, together, then we stop."}</p>
             {focus && (
@@ -137,6 +142,8 @@ export default async function TodayPage() {
         </Link>
       </div>
 
+      <GoalNudge />
+
       {/* This week — activity + schedule */}
       <section>
         <div className="mb-3 flex items-center justify-between">
@@ -146,6 +153,7 @@ export default async function TodayPage() {
         <div className="rounded-3xl border border-sand bg-paper p-4">
           {(() => {
             const target = 3;
+            const done = thisWeek >= target;
             const pct = Math.min(thisWeek / target, 1);
             const r = 20, c = 2 * Math.PI * r;
             return (
@@ -154,11 +162,11 @@ export default async function TodayPage() {
                   <circle cx="26" cy="26" r={r} fill="none" stroke="var(--color-sand)" strokeWidth="6" />
                   <circle cx="26" cy="26" r={r} fill="none" stroke="var(--color-sage)" strokeWidth="6" strokeLinecap="round"
                     strokeDasharray={c} strokeDashoffset={c * (1 - pct)} transform="rotate(-90 26 26)" />
-                  <text x="26" y="30" textAnchor="middle" className="fill-ink font-display text-sm">{thisWeek}</text>
+                  <text x="26" y="30" textAnchor="middle" className="fill-ink font-display text-sm">{done ? "✓" : `${thisWeek}/${target}`}</text>
                 </svg>
                 <div>
-                  <div className="text-sm font-semibold">{thisWeek} of {target} sessions</div>
-                  <div className="text-xs text-ink/55">{thisWeek >= target ? "This week's done. Lovely." : `${target - thisWeek} to go — no rush.`}</div>
+                  <div className="text-sm font-semibold">{done ? `${thisWeek} session${thisWeek === 1 ? "" : "s"} this week` : `${thisWeek} of ${target} sessions this week`}</div>
+                  <div className="text-xs text-ink/55">{done ? "You've hit your week. Lovely." : `${target - thisWeek} to go — no rush.`}</div>
                 </div>
               </div>
             );
@@ -223,6 +231,25 @@ export default async function TodayPage() {
           </div>
         )}
       </section>
+
+      {/* You finished */}
+      {(finished ?? []).length > 0 && (
+        <section>
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/40">You finished</h3>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {(finished ?? []).map((f, i) => {
+              const meta = f.subject_key ? SUBJECT_META[f.subject_key] : null;
+              return (
+                <div key={i} className="w-36 shrink-0 rounded-2xl border border-sand bg-paper p-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg text-lg" style={{ background: meta?.color ?? "var(--color-sand)" }}>{meta?.emoji ?? "✅"}</div>
+                  <div className="mt-1.5 truncate text-sm font-semibold">{meta?.name ?? "Session"}</div>
+                  <div className="text-[11px] text-ink/50">{f.ended_at ? new Date(f.ended_at).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" }) : "done"}</div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Your corner */}
       <section>

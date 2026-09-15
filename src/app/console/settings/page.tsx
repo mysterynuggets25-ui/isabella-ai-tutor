@@ -13,6 +13,7 @@ type Settings = {
   session_days: string[];
   tone: string;
   monthly_cap_usd: number;
+  holiday_mode: string;
 };
 
 const SUPPORTS = ["dyslexia", "adhd", "processing", "anxiety"];
@@ -184,6 +185,30 @@ export default function SettingsPage() {
               }`}
             >
               {t}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Holidays */}
+      <section>
+        <h2 className="font-semibold">School holidays</h2>
+        <p className="mt-1 text-sm text-ink/60">How tutoring runs during the school breaks.</p>
+        <div className="mt-3 flex flex-wrap gap-2 text-sm">
+          {[
+            { v: "off", label: "Take a break", desc: "No sessions" },
+            { v: "reduced", label: "Lighter", desc: "Fewer days" },
+            { v: "normal", label: "Keep going", desc: "As usual" },
+          ].map((o) => (
+            <button
+              key={o.v}
+              onClick={() => updateSettings({ holiday_mode: o.v })}
+              className={`rounded-xl border px-4 py-2 text-left ${
+                (settings.holiday_mode ?? "reduced") === o.v ? "border-sage bg-sage text-white" : "border-sand"
+              }`}
+            >
+              <div className="font-semibold">{o.label}</div>
+              <div className={`text-xs ${(settings.holiday_mode ?? "reduced") === o.v ? "text-white/70" : "text-ink/50"}`}>{o.desc}</div>
             </button>
           ))}
         </div>

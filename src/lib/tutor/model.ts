@@ -227,6 +227,7 @@ export type SessionLearning = {
   level_estimate: string;
   dimensions: Record<string, string>;
   next_focus: string;
+  concern: string;
 };
 
 // The weekly note to Sarah — plain language, patterns not grades.
@@ -238,9 +239,12 @@ export async function generateWeeklyNote(opts: {
     tier: "adhoc",
     maxTokens: 500,
     system: `You write a short weekly note for Isabella's mum about her tutoring (Year 10). Plain, warm,
-honest, specific. Patterns, not grades. 4-6 sentences, no bullet points, no headings. Cover: what
-improved, where she stalled or resisted, and what you'd do next week. If there were no sessions, say
-so kindly and gently suggest getting back to it. Never invent detail.`,
+honest, specific. Patterns, not grades. 5-7 sentences, no bullet points, no headings. Cover TWO things:
+(1) her learning — what improved, where she stalled or resisted, what you'd do next week; and
+(2) HER — her engagement, confidence and mood, whether she's opening up and starting to enjoy it more,
+and gently raise anything about her wellbeing or social/emotional state that Mum would want to know
+(from any concern notes provided). Be encouraging but honest. If there were no sessions, say so kindly.
+Never invent detail.`,
     messages: [{ role: "user", text: `Week of ${opts.weekLabel}. Sessions this week:\n${opts.digest || "No sessions this week."}` }],
   });
   return raw.trim();
@@ -262,12 +266,13 @@ export async function summariseSession(opts: {
     maxTokens: 700,
     system: `You maintain the tutor's evolving memory of how Isabella (Year 10) learns ${opts.subjectName}.
 You are given what the tutor already believed about her, plus the latest session. Update the memory.
-Return STRICT JSON only, with keys: note, summary, level_estimate, dimensions, next_focus.
+Return STRICT JSON only, with keys: note, summary, level_estimate, dimensions, next_focus, concern.
 - note: one or two sentences of specifics from THIS session, e.g. "needed two hints on equivalent ratios, re-engaged when the example switched to netball scoring".
 - summary: a one-line rolling summary of where she is in this subject overall.
 - level_estimate: a short phrase for her current working level.
 - dimensions: an object refining how she learns. Short string values. Suggested keys (only what you have evidence for): hint_need, entry_point, engages_with, struggles_with, pace, interests, recovery, confidence. Prefer updating an existing belief over inventing new ones.
 - next_focus: the ONE concept you plan to teach her NEXT session in this subject, as a short phrase a 15-year-old understands. Choose the natural next step given where she is and what she found hard.
+- concern: a short, gentle note for her mum ONLY IF something about her wellbeing stood out this session — she seemed low, flat, anxious, withdrawn, unusually hard on herself, or mentioned friendship/social/home trouble. This is NOT about academics and NOT a crisis (safety is handled separately). Empty string "" if nothing of note (that is the normal case).
 No prose outside the JSON.`,
     messages: [
       {
@@ -277,7 +282,7 @@ No prose outside the JSON.`,
     ],
   });
 
-  const j = parseJson<{ note?: string; summary?: string; level_estimate?: string; dimensions?: unknown; next_focus?: string }>(raw, {});
+  const j = parseJson<{ note?: string; summary?: string; level_estimate?: string; dimensions?: unknown; next_focus?: string; concern?: string }>(raw, {});
   const dims = j.dimensions && typeof j.dimensions === "object" ? (j.dimensions as Record<string, unknown>) : {};
   const dimensions: Record<string, string> = {};
   for (const [k, v] of Object.entries(dims)) dimensions[k] = String(v);
@@ -287,5 +292,6 @@ No prose outside the JSON.`,
     level_estimate: String(j.level_estimate ?? ""),
     dimensions,
     next_focus: String(j.next_focus ?? ""),
+    concern: String(j.concern ?? ""),
   };
 }
