@@ -39,7 +39,8 @@ ANTHROPIC_API_KEY                 (secret)   fallback model + still used if Open
 NEXT_PUBLIC_VAPID_PUBLIC_KEY      (config)   web push
 VAPID_PRIVATE_KEY                 (secret)   web push
 VAPID_SUBJECT                     (config)   mailto:sarah.bellefever@gmail.com
-CRON_SECRET                       (secret)   protects /api/cron/reminders
+CRON_SECRET                       (secret)   protects /api/cron/* routes
+CANVAS_ICS_URL                    (secret)   Isabella's Canvas calendar feed (.ics) for assessment sync
 TUTOR_SESSION_MODEL/ADHOC_MODEL   (config)   Claude model ids (used only if on Claude)
 OPENAI_SESSION_MODEL/ADHOC_MODEL  (optional) default gpt-4o-mini
 ```
@@ -53,10 +54,30 @@ cd ~/isabella-ai-tutor && npx vercel@59 --prod --yes
 - Vercel CLI must be the **mysterynuggets25** account (`npx vercel@59 whoami`). If not, `vercel login`.
 - Adding a `NEXT_PUBLIC_` credential-looking var via CLI needs `--type config`.
 
-### Migrations (all applied)
-`supabase/migrations/`: `0001_init.sql` (schema + RLS), `0002_seed.sql` (8 subjects, Maths+English
-active — Sarah later activated all 8), `0003_push.sql` (push_subscriptions). Apply new ones in the
-Supabase SQL editor.
+### Migrations
+`supabase/migrations/`: `0001_init.sql` (schema + RLS), `0002_seed.sql` (8 subjects; Maths+English
+active — Sarah later activated all 8; names later changed to "Maths"/"English"), `0003_push.sql`
+(push_subscriptions), `0004_usage.sql` (usage_monthly — cost cap/meter), `0005_holiday_mode.sql`
+(settings.holiday_mode). Apply in the Supabase SQL editor. NOTE: `create policy` is not idempotent —
+re-running a migration whose policy exists errors "already exists"; run only the new statements.
+
+### Since-launch capabilities (all live)
+- **Canvas sync**: `lib/canvas.ts` pulls assessments/exams from `CANVAS_ICS_URL` (.ics), parses due
+  times (Sydney), type + weighting + task details, maps courses→subjects, filters out lessons; live
+  (throttled `maybeSyncCanvas()` on calendar/home load) + `/api/canvas/sync` button. Stored as
+  assessments `source='schedule'`; details go in `next_step` and into the tutor's lesson plan.
+- **Holidays**: `lib/holidays.ts` (ACC 2026 term-break dates) + `settings.holiday_mode`
+  (off/reduced/normal) — calendar + home respect it via `classScheduled()`.
+- **Interactive calendar** (`CalendarBoard.tsx`): clickable days, event chips, Up-next strip, per-type
+  icons (lesson/assessment/quiz/exam/holiday/mine), month nav; Isabella adds her own items
+  (localStorage `lib/events.ts`).
+- **Wellbeing**: `summariseSession` emits a `concern` → `safety_flags` category `concern` (amber in
+  the console "Wellbeing" view, distinct from crisis); the weekly note covers wellbeing + social.
+- **Tutor prompt**: CONNECT (love learning + come out of her shell) + HELPING GROW (goals + AI
+  literacy, integrity-first) sections in `prompt.ts`.
+- **Dashboard**: study-time chart + weekly progress ring, colourful subjects, Penny mood states
+  (happy/proud/sleepy, `TutorCharacter` `mood` prop), "you finished" card, goal nudge, Lexend body
+  font, nav simplified (Cheat sheets is a quick action, not a nav item).
 
 ---
 
@@ -120,7 +141,9 @@ src/components/            SessionChat, TutorCharacter (animals + `full` dungare
                           PersonaName, Goals, Reminders, SignOutButton
 public/sw.js              service worker (push); public/manifest.webmanifest + icon.svg (installable)
 vercel.json               daily reminders cron (21:00 UTC ≈ 7-8am AEST)
-supabase/migrations/      0001 init+RLS · 0002 seed · 0003 push_subscriptions
+supabase/migrations/      0001 init+RLS · 0002 seed · 0003 push · 0004 usage · 0005 holiday_mode
+src/lib/                  canvas.ts (Canvas .ics sync) · holidays.ts · events.ts (personal calendar)
+src/components/           CalendarBoard.tsx (interactive) · GoalNudge · AckFlagButton · WeeklyNoteButton
 ```
 
 ---
