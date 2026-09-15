@@ -151,6 +151,7 @@ export type SessionLearning = {
   summary: string;
   level_estimate: string;
   dimensions: Record<string, string>;
+  next_focus: string; // what the tutor plans to teach next session in this subject
 };
 
 // Turn a finished session into what the tutor should remember. Beyond a one-line
@@ -172,11 +173,12 @@ export async function summariseSession(opts: {
     max_tokens: 700,
     system: `You maintain the tutor's evolving memory of how Isabella (Year 10) learns ${opts.subjectName}.
 You are given what the tutor already believed about her, plus the latest session. Update the memory.
-Return STRICT JSON only, with keys: note, summary, level_estimate, dimensions.
+Return STRICT JSON only, with keys: note, summary, level_estimate, dimensions, next_focus.
 - note: one or two sentences of specifics from THIS session, e.g. "needed two hints on equivalent ratios, re-engaged when the example switched to netball scoring, asked to stop six minutes early".
 - summary: a one-line rolling summary of where she is in this subject overall.
 - level_estimate: a short phrase for her current working level.
 - dimensions: an object refining how she learns. Use short string values. Suggested keys (only include what you have evidence for): hint_need, entry_point, engages_with, struggles_with, pace, interests, recovery, confidence. Prefer updating an existing belief over inventing new ones. Do not contradict prior beliefs without evidence from this session.
+- next_focus: the ONE concept you plan to teach her NEXT session in this subject, as a short phrase a 15-year-old would understand (e.g. "using trig to find a missing side"). Choose the natural next step given where she is and what she found hard. This becomes the plan you open the next session with.
 No prose outside the JSON.`,
     messages: [
       {
@@ -201,8 +203,9 @@ No prose outside the JSON.`,
       summary: String(json.summary ?? ""),
       level_estimate: String(json.level_estimate ?? ""),
       dimensions,
+      next_focus: String(json.next_focus ?? ""),
     };
   } catch {
-    return { note: text.slice(0, 400), summary: "", level_estimate: "", dimensions: {} };
+    return { note: text.slice(0, 400), summary: "", level_estimate: "", dimensions: {}, next_focus: "" };
   }
 }

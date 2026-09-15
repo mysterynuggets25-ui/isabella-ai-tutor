@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
   let summary = "";
   let level_estimate = "";
   let dimensions: Record<string, string> = {};
+  let nextFocus = "";
   try {
     const s = await summariseSession({
       subjectName: subject?.name ?? session.subject_key,
@@ -67,6 +68,7 @@ export async function POST(req: NextRequest) {
     summary = s.summary;
     level_estimate = s.level_estimate;
     dimensions = s.dimensions;
+    nextFocus = s.next_focus;
   } catch {
     // If summarisation fails, still close the session cleanly.
   }
@@ -81,7 +83,11 @@ export async function POST(req: NextRequest) {
     });
     // Merge the new learning into the tutor's evolving memory (new beliefs win
     // per key, prior beliefs are kept).
-    const mergedDimensions = { ...priorDimensions, ...dimensions };
+    const mergedDimensions = {
+      ...priorDimensions,
+      ...dimensions,
+      ...(nextFocus ? { _next_focus: nextFocus } : {}),
+    };
     await service
       .from("learner_profile")
       .upsert(

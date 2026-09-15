@@ -105,13 +105,27 @@ export default function SessionChat({
       ? `${Math.floor(remainingSec / 60)}:${String(remainingSec % 60).padStart(2, "0")}`
       : `${Math.floor(elapsedSec / 60)}:${String(elapsedSec % 60).padStart(2, "0")}`;
 
-  function join() {
+  async function join() {
     setJoined(true);
     setStartedAt(Date.now());
-    const greeting = `Hi Isabella, I'm ${name}. What are we working on in ${subjectName} today?`;
-    setMessages([{ role: "tutor", content: greeting }]);
-    voice.prime();
-    if (soundOn) voice.speak(greeting);
+    voice.prime(); // unlock speech inside the tap
+    setBusy(true);
+    try {
+      const res = await fetch("/api/tutor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subjectKey, mode, start: true, tutorName: name }),
+      });
+      const data = await res.json();
+      if (data.sessionId) setSessionId(data.sessionId);
+      const reply = data.reply ?? `Hi Isabella, I'm ${name}. Let's get started.`;
+      setMessages([{ role: "tutor", content: reply }]);
+      if (soundOn) voice.speak(reply);
+    } catch {
+      setMessages([{ role: "tutor", content: `Hi Isabella, I'm ${name}. Let's get going — what were you working on?` }]);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function send(override?: string) {
