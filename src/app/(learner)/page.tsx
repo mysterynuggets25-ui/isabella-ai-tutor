@@ -10,15 +10,19 @@ const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DAY_FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MONDAY_EPOCH = Date.UTC(2020, 0, 6);
 
-const SUBJECT_META: Record<string, { name: string; emoji: string }> = {
-  maths: { name: "Maths", emoji: "🔢" },
-  english: { name: "English", emoji: "📖" },
-  science: { name: "Science", emoji: "🔬" },
-  hsie: { name: "HSIE", emoji: "🌏" },
-  pdhpe: { name: "PDHPE", emoji: "⚽" },
-  food_tech: { name: "Food Tech", emoji: "🍳" },
-  money: { name: "Money", emoji: "💰" },
-  christian: { name: "Christian Studies", emoji: "✝️" },
+const SUBJECT_META: Record<string, { name: string; emoji: string; color: string }> = {
+  maths: { name: "Maths", emoji: "🔢", color: "#e3e9f7" },
+  english: { name: "English", emoji: "📖", color: "#f7e3e8" },
+  science: { name: "Science", emoji: "🔬", color: "#e0f0e6" },
+  hsie: { name: "HSIE", emoji: "🌏", color: "#f7efdc" },
+  pdhpe: { name: "PDHPE", emoji: "⚽", color: "#dcf0f0" },
+  food_tech: { name: "Food Tech", emoji: "🍳", color: "#f8e6d6" },
+  money: { name: "Money", emoji: "💰", color: "#dceee3" },
+  christian: { name: "Christian Studies", emoji: "✝️", color: "#ece3f7" },
+};
+const SUBJECT_DOT: Record<string, string> = {
+  maths: "#8aa0d8", english: "#d88aa0", science: "#7fb894", hsie: "#d9b45f",
+  pdhpe: "#6fb8b8", food_tech: "#e0995f", money: "#6fb890", christian: "#a78ad8",
 };
 
 const SANCTUARY: { animal: Animal; color: string }[] = [
@@ -34,7 +38,7 @@ export default async function TodayPage() {
     await Promise.all([
       supabase.from("settings").select("*").eq("id", 1).single(),
       supabase.from("subjects").select("key,name,blurb").eq("active", true).order("sort_order"),
-      supabase.from("sessions").select("started_at").limit(2000),
+      supabase.from("sessions").select("started_at,ended_at").limit(2000),
       supabase.from("assessments").select("title,due_date,subject_key,next_step").eq("done", false).order("due_date").limit(3),
       supabase.from("learner_profile").select("subject_key,dimensions"),
     ]);
@@ -56,6 +60,27 @@ export default async function TodayPage() {
   const unlocked = Math.min([...perWeek.values()].filter((n) => n >= 3).length, SANCTUARY.length);
 
   const sessionDays: string[] = settings?.session_days ?? ["Tue", "Thu", "Sat"];
+
+  // This week's activity (minutes/day) + the scheduled subject per day.
+  const mondayThis = new Date(now);
+  mondayThis.setHours(0, 0, 0, 0);
+  mondayThis.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(mondayThis);
+    d.setDate(mondayThis.getDate() + i);
+    const mins = all.reduce((sum, s) => {
+      const st = new Date(s.started_at);
+      if (st.toDateString() !== d.toDateString()) return sum;
+      const en = s.ended_at ? new Date(s.ended_at) : null;
+      return sum + (en ? Math.max(0, Math.min(90, (en.getTime() - st.getTime()) / 60000)) : 0);
+    }, 0);
+    const scheduled = active.length > 0 && sessionDays.includes(DAYS[d.getDay()]);
+    const subj = scheduled ? active[Math.floor(d.getTime() / 86_400_000) % active.length] : null;
+    return { letter: DAYS[d.getDay()][0], mins: Math.round(mins), subjectKey: subj?.key ?? null, isToday: d.toDateString() === now.toDateString(), isFuture: d > now };
+  });
+  const maxMins = Math.max(30, ...weekDays.map((w) => w.mins));
+  const totalMins = weekDays.reduce((s, w) => s + w.mins, 0);
+
   const isSessionToday = sessionDays.map((d) => DAYS.indexOf(d)).includes(todayIdx);
   const dayIndex = Math.floor(Date.now() / 86_400_000) % Math.max(active.length, 1);
   const focus = active[dayIndex] ?? active[0];
@@ -112,6 +137,51 @@ export default async function TodayPage() {
         </Link>
       </div>
 
+      {/* This week — activity + schedule */}
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/40">This week</h3>
+          <span className="text-xs text-ink/50">{Math.floor(totalMins / 60)}h {totalMins % 60}m together</span>
+        </div>
+        <div className="rounded-3xl border border-sand bg-paper p-4">
+          {(() => {
+            const target = 3;
+            const pct = Math.min(thisWeek / target, 1);
+            const r = 20, c = 2 * Math.PI * r;
+            return (
+              <div className="mb-4 flex items-center gap-4 border-b border-sand pb-4">
+                <svg width="52" height="52" viewBox="0 0 52 52" className="shrink-0">
+                  <circle cx="26" cy="26" r={r} fill="none" stroke="var(--color-sand)" strokeWidth="6" />
+                  <circle cx="26" cy="26" r={r} fill="none" stroke="var(--color-sage)" strokeWidth="6" strokeLinecap="round"
+                    strokeDasharray={c} strokeDashoffset={c * (1 - pct)} transform="rotate(-90 26 26)" />
+                  <text x="26" y="30" textAnchor="middle" className="fill-ink font-display text-sm">{thisWeek}</text>
+                </svg>
+                <div>
+                  <div className="text-sm font-semibold">{thisWeek} of {target} sessions</div>
+                  <div className="text-xs text-ink/55">{thisWeek >= target ? "This week's done. Lovely." : `${target - thisWeek} to go — no rush.`}</div>
+                </div>
+              </div>
+            );
+          })()}
+          <div className="flex items-end justify-between gap-1.5">
+            {weekDays.map((w, i) => {
+              const barPct = w.mins > 0 ? Math.max(0.2, w.mins / maxMins) : w.subjectKey ? 0.08 : 0.03;
+              const barColor = w.mins > 0 ? "var(--color-sage)" : w.subjectKey ? "var(--color-sand)" : "#efe9dd";
+              return (
+                <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
+                  <div className="flex h-20 w-full items-end justify-center">
+                    <div className={`w-6 rounded-t-lg ${w.isToday ? "ring-2 ring-terracotta/40" : ""}`} style={{ height: `${barPct * 100}%`, background: barColor }} />
+                  </div>
+                  <div className={`text-[11px] ${w.isToday ? "font-bold text-terracotta-deep" : "text-ink/45"}`}>{w.letter}</div>
+                  {w.subjectKey ? <div className="h-1.5 w-1.5 rounded-full" style={{ background: SUBJECT_DOT[w.subjectKey] }} /> : <div className="h-1.5" />}
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-3 border-t border-sand pt-2 text-[11px] text-ink/45">Green is time you spent together. Coloured dots are your session days.</p>
+        </div>
+      </section>
+
       {/* Coming up */}
       <section>
         <div className="mb-3 flex items-center justify-between">
@@ -133,7 +203,7 @@ export default async function TodayPage() {
               return (
                 <Link key={i} href={a.subject_key ? `/session?subject=${a.subject_key}&mode=adhoc` : "/calendar"}
                   className="flex items-center gap-3 rounded-2xl border border-sand bg-paper p-3.5 hover:border-sage">
-                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl ${isExam ? "bg-terracotta/15" : "bg-sage/10"}`}>
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl" style={{ background: meta?.color ?? "var(--color-sand)" }}>
                     {meta?.emoji ?? "📌"}
                   </div>
                   <div className="min-w-0 flex-1">
