@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import TutorCharacter from "@/components/TutorCharacter";
 import { useTutorVoice } from "@/lib/tutor/useTutorVoice";
+import { useSpeechInput } from "@/lib/tutor/useSpeechInput";
 import { DEFAULT_PERSONA, getPersona, type Persona } from "@/lib/persona";
 
 type Msg = { role: "learner" | "tutor"; content: string };
@@ -29,6 +30,10 @@ export default function SessionChat({
   const router = useRouter();
   const [persona, setPersona] = useState<Persona>(DEFAULT_PERSONA);
   const voice = useTutorVoice({ rate: voiceSpeed, gender: persona.voice });
+  const speechIn = useSpeechInput((t) => {
+    voice.cancel(); // don't let Penny's voice bleed into what she's saying
+    send(t);
+  });
   const [joined, setJoined] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -109,8 +114,8 @@ export default function SessionChat({
     if (soundOn) voice.speak(greeting);
   }
 
-  async function send() {
-    const text = input.trim();
+  async function send(override?: string) {
+    const text = (override ?? input).trim();
     if (!text || busy) return;
     voice.prime();
     setInput("");
@@ -214,7 +219,15 @@ export default function SessionChat({
         </div>
 
         {/* Call controls */}
-        <div className="flex items-center justify-center gap-3 border-t border-white/10 bg-black/20 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="flex items-center justify-center gap-2 border-t border-white/10 bg-black/20 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          {speechIn.supported && (
+            <button
+              onClick={() => (speechIn.listening ? speechIn.stop() : (voice.cancel(), speechIn.start()))}
+              className={`flex h-11 items-center gap-2 rounded-full px-5 font-semibold ${speechIn.listening ? "animate-pulse bg-terracotta text-white" : "bg-white/20 text-white"}`}
+            >
+              🎤 {speechIn.listening ? "Listening…" : "Talk"}
+            </button>
+          )}
           <CallBtn onClick={toggleSound} on={soundOn} label={soundOn ? "🔊" : "🔇"} />
           <CallBtn onClick={() => setCameraOn((c) => !c)} on={cameraOn} label={cameraOn ? "📹" : "📷"} />
           <button onClick={leave} disabled={ending} className="flex h-11 items-center gap-2 rounded-full bg-terracotta px-5 font-semibold text-white hover:bg-terracotta-deep disabled:opacity-60">
@@ -255,7 +268,7 @@ export default function SessionChat({
               placeholder={`Type to ${name}, or tap your keyboard mic to talk`}
               className="flex-1 rounded-full border border-sand bg-cream px-4 py-3 text-ink outline-none focus:border-sage"
             />
-            <button onClick={send} disabled={busy} className="rounded-full bg-terracotta px-5 py-3 font-semibold text-white hover:bg-terracotta-deep disabled:opacity-50">
+            <button onClick={() => send()} disabled={busy} className="rounded-full bg-terracotta px-5 py-3 font-semibold text-white hover:bg-terracotta-deep disabled:opacity-50">
               Send
             </button>
           </div>

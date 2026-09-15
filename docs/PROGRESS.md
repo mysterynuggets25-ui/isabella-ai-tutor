@@ -1,5 +1,18 @@
 # Progress
 
+## 2026-09-15 (late) — Clothed character, Calendar + streak, voice hardening
+- **Character now has clothes + a body** (`TutorCharacter` `full` mode: dungarees, straps, buttons,
+  pocket, arms). Used big in the **call so it fills the screen** like the mock, plus lobby + customiser.
+- **Calendar** (`/calendar`): month grid — days she showed up (🔥), scheduled session days, due-item
+  dots, today ringed — plus the Coming up list. Replaced "Coming up" in the nav.
+- **Duolingo-style day streak** (`lib/streak.ts`, forgiving: alive if active today or yesterday) on
+  Calendar + My corner. Sanctuary (collection) + goals already Duolingo-flavoured.
+- **Voice hardened**: on-device voice preference, Chrome `resume()` keep-alive, robust selection.
+  Added a **"Hear a hello"** test button in the customiser — verified a real tap makes `speaking:true`
+  (Karen en-AU). Script-triggered speech is blocked by browsers by design; a real tap works. If still
+  silent for the user it's device/tab volume or browser.
+- Duolingo ideas still open: daily-goal ring, achievements, streak freeze, reminder notifications.
+
 ## 2026-09-15 (eve) — Pig default + CALL rebuild + My corner + Coming up
 - **Default tutor = cute pig "Penny"** (added `pig` to the animal set + renderer). Isabella still
   fully redesigns it.
