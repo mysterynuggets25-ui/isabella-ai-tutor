@@ -4,29 +4,28 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import TutorCharacter from "@/components/TutorCharacter";
 import { useTutorVoice } from "@/lib/tutor/useTutorVoice";
+import { DEFAULT_PERSONA, getPersona, type Persona } from "@/lib/persona";
 
 type Msg = { role: "learner" | "tutor"; content: string };
 
-// The live session as a "video call" (Phase 2): a join lobby, an animated tutor
-// on a headset, voice out, and the timed session arc — so it feels like a real
-// scheduled tutoring call, not another page.
+// The live session as a "video call" (Phase 2): a join lobby, Isabella's chosen
+// tutor on a headset, voice out, and the timed session arc.
 export default function SessionChat({
   subjectKey,
   subjectName,
   mode,
-  tutorName = "Mia",
   sessionLengthMin = 30,
   voiceSpeed = 1,
 }: {
   subjectKey: string;
   subjectName: string;
   mode: "scheduled" | "adhoc";
-  tutorName?: string;
   sessionLengthMin?: number;
   voiceSpeed?: number;
 }) {
   const router = useRouter();
   const voice = useTutorVoice({ rate: voiceSpeed });
+  const [persona, setPersona] = useState<Persona>(DEFAULT_PERSONA);
   const [joined, setJoined] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -38,11 +37,28 @@ export default function SessionChat({
   const [now, setNow] = useState(Date.now());
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => setPersona(getPersona()), []);
+  const name = persona.name || "Mia";
+
   useEffect(() => {
     if (!startedAt) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, [startedAt]);
+
+  // Best-effort: if she leaves without pressing End, still close + summarise.
+  useEffect(() => {
+    const onHide = () => {
+      if (sessionId && !ending) {
+        navigator.sendBeacon?.(
+          "/api/session",
+          new Blob([JSON.stringify({ action: "end", sessionId })], { type: "application/json" }),
+        );
+      }
+    };
+    window.addEventListener("pagehide", onHide);
+    return () => window.removeEventListener("pagehide", onHide);
+  }, [sessionId, ending]);
 
   const totalSec = sessionLengthMin * 60;
   const elapsedSec = startedAt ? Math.floor((now - startedAt) / 1000) : 0;
@@ -58,14 +74,12 @@ export default function SessionChat({
     elapsedSec < totalSec * 0.9 ? "Your turn to explain" :
     "Wrapping up";
 
-  const lastTutor = [...messages].reverse().find((m) => m.role === "tutor");
+  const look = { skin: persona.skin, hair: persona.hair, hairStyle: persona.hairStyle };
 
   function join() {
     setJoined(true);
     setStartedAt(Date.now());
-    // Mia greets out loud immediately (free, browser voice) so voice is obvious
-    // and, on Safari/iOS, so the first speech starts inside the tap gesture.
-    const greeting = `Hi Isabella, I'm ${tutorName}. What are we working on in ${subjectName} today?`;
+    const greeting = `Hi Isabella, I'm ${name}. What are we working on in ${subjectName} today?`;
     setMessages([{ role: "tutor", content: greeting }]);
     voice.prime();
     if (voiceOn) voice.speak(greeting);
@@ -82,7 +96,7 @@ export default function SessionChat({
       const res = await fetch("/api/tutor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subjectKey, mode, message: text, sessionId }),
+        body: JSON.stringify({ subjectKey, mode, message: text, sessionId, tutorName: name }),
       });
       const data = await res.json();
       if (data.sessionId) setSessionId(data.sessionId);
@@ -120,14 +134,14 @@ export default function SessionChat({
   // ---- Join lobby -----------------------------------------------------------
   if (!joined) {
     return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-teal-deep to-[#06201d] px-6 text-center text-white">
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-teal-deep to-[#06201d] px-6 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] text-center text-white">
         <div className="text-xs uppercase tracking-[0.2em] text-white/50">
           {mode === "scheduled" ? "Scheduled session" : "Quick help"}
         </div>
         <div className="mt-8 rounded-[2rem] bg-white/5 p-6 ring-1 ring-white/10">
-          <TutorCharacter size={150} />
+          <TutorCharacter size={150} look={look} />
         </div>
-        <h1 className="mt-6 text-2xl font-semibold">{subjectName} with {tutorName}</h1>
+        <h1 className="mt-6 text-2xl font-semibold">{subjectName} with {name}</h1>
         <p className="mt-2 text-white/60">
           {mode === "scheduled" ? `${sessionLengthMin} minutes · one thing at a time` : "Bring your question"}
         </p>
@@ -147,8 +161,7 @@ export default function SessionChat({
   // ---- Live call ------------------------------------------------------------
   return (
     <div className="fixed inset-0 flex flex-col bg-gradient-to-b from-teal-deep to-[#06201d] text-white">
-      {/* Call header */}
-      <div className="flex items-center justify-between px-5 pt-6 pb-3">
+      <div className="flex items-center justify-between px-5 pb-3 pt-[max(1.5rem,env(safe-area-inset-top))]">
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1.5 rounded-full bg-coral/90 px-2.5 py-1 text-xs font-semibold">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" /> LIVE
@@ -163,29 +176,19 @@ export default function SessionChat({
         </div>
       </div>
 
-      {/* Tutor "video tile" */}
       <div className="flex flex-col items-center px-5">
         <div
           className={`rounded-[2rem] bg-white/5 p-4 ring-2 transition-all ${
             voice.speaking ? "ring-coral shadow-[0_0_40px_-8px_var(--color-coral)]" : "ring-white/10"
           }`}
         >
-          <TutorCharacter speaking={voiceOn && voice.speaking} thinking={busy} size={128} />
+          <TutorCharacter speaking={voiceOn && voice.speaking} thinking={busy} size={128} look={look} />
         </div>
-        <div className="mt-2 text-sm font-medium">{tutorName}</div>
+        <div className="mt-2 text-sm font-medium">{name}</div>
         <div className="text-xs text-white/40">{busy ? "thinking…" : voice.speaking ? "speaking…" : "your tutor"}</div>
       </div>
 
-      {/* Transcript */}
       <div ref={scrollRef} className="mt-3 flex-1 space-y-2.5 overflow-y-auto px-5">
-        {messages.length === 0 && (
-          <div className="mx-auto max-w-sm rounded-2xl bg-white/10 p-4 text-center text-sm text-white/80">
-            Say hi, or tell {tutorName} what you&apos;re working on in {subjectName}.
-            {voice.supported && (
-              <span className="mt-1 block text-white/50">Tap the mic on your keyboard to talk instead of type.</span>
-            )}
-          </div>
-        )}
         {messages.map((m, i) => (
           <div
             key={i}
@@ -200,19 +203,18 @@ export default function SessionChat({
         ))}
         {busy && (
           <div className="mr-auto max-w-[60%] rounded-2xl bg-white/10 px-4 py-2 text-white/50">
-            {tutorName} is thinking…
+            {name} is thinking…
           </div>
         )}
       </div>
 
-      {/* Input + call controls */}
-      <div className="border-t border-white/10 bg-black/20 px-4 pb-6 pt-3">
+      <div className="border-t border-white/10 bg-black/20 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3">
         <div className="flex items-center gap-2">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder={`Message ${tutorName}`}
+            placeholder={`Message ${name}`}
             className="flex-1 rounded-full border border-white/15 bg-white/10 px-4 py-3 text-white placeholder-white/40 outline-none focus:border-coral"
           />
           <button
@@ -230,7 +232,7 @@ export default function SessionChat({
               className={`flex h-11 w-11 items-center justify-center rounded-full text-lg ${
                 voiceOn ? "bg-white/15" : "bg-white/5 text-white/40"
               }`}
-              aria-label={voiceOn ? "Mute Mia" : "Unmute Mia"}
+              aria-label={voiceOn ? "Mute" : "Unmute"}
             >
               {voiceOn ? "🔊" : "🔇"}
             </button>

@@ -54,8 +54,10 @@ export function buildTutorPrompt(opts: {
   profile: Profile | null;
   mode: "scheduled" | "adhoc";
   curriculumReference?: string;
+  tutorName?: string;
 }): string {
   const { settings, subject, profile, mode, curriculumReference } = opts;
+  const tutorName = (opts.tutorName || "Mia").trim();
 
   const arc =
     mode === "scheduled"
@@ -68,7 +70,7 @@ Keep an eye on the time. The session is meant to feel finite, not open-ended.`
       : `This is an on-demand session. She has brought a specific question or task. Work it through with her, do not run the full arc.`;
 
   const christian =
-    subject.key === "christian" || settings.school_context.toLowerCase().includes("christian")
+    subject.key === "christian"
       ? `\nChristian Studies / faith context:
 - Her school teaches from a particular Christian position. Support what she is assessed on. Help with content, scripture references, structure and written responses within the school's framing.
 - On a genuinely contested question, present the position she is studying, note that Christians differ, and point her to her parent and her teacher rather than deciding it yourself.
@@ -83,10 +85,11 @@ Keep an eye on the time. The session is meant to feel finite, not open-ended.`
 Use this to adapt. If nothing is recorded yet, start gently and find her level in conversation, never with a test.`
     : `You have no history for ${subject.name} yet. Start gently, find her level in conversation, never with a test.`;
 
-  return `You are Isabella's tutor for ${subject.name} (${subject.level} level).
+  return `You are ${tutorName}, Isabella's tutor for ${subject.name} (${subject.level} level).
 Isabella is ${settings.age}, in ${settings.year_level}, ${settings.curriculum} curriculum, at a ${settings.school_context}.
 
 WHO YOU ARE
+- Your name is ${tutorName}. If she asks who you are, that is your name.
 - ${TONE_LINE[settings.tone]}
 - You are a tutor, not a friend and not a chatbot. You talk about her schoolwork and how to study. Nothing else.
 - Match her reading level. Explain like a good human tutor would, not like a textbook.

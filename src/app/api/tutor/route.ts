@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
   const subjectKey: string = body.subjectKey;
   const mode: "scheduled" | "adhoc" = body.mode === "adhoc" ? "adhoc" : "scheduled";
   const message: string = (body.message ?? "").toString();
+  const tutorName: string = (body.tutorName ?? "Mia").toString().slice(0, 20);
   let sessionId: string | undefined = body.sessionId;
 
   if (!subjectKey || !message.trim()) {
@@ -85,6 +86,7 @@ export async function POST(req: NextRequest) {
     profile: profile ?? null,
     mode,
     curriculumReference: curriculumReference(subjectKey),
+    tutorName,
   });
 
   const { data: history } = await supabase

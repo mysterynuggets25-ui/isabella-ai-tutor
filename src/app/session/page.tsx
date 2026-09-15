@@ -16,16 +16,18 @@ export default async function SessionPage({
   const { subject = "", mode = "scheduled" } = await searchParams;
   const supabase = await createClient();
   const [{ data: subj }, { data: settings }] = await Promise.all([
-    supabase.from("subjects").select("name").eq("key", subject).single(),
-    supabase.from("settings").select("*").eq("id", 1).single(),
+    supabase.from("subjects").select("name,active").eq("key", subject).single(),
+    supabase.from("settings").select("session_length_min,voice_speed").eq("id", 1).single(),
   ]);
+
+  // Don't let a session open for a subject that isn't switched on.
+  if (!subj || !subj.active) redirect("/subjects");
 
   return (
     <SessionChat
       subjectKey={subject}
-      subjectName={subj?.name ?? "your subject"}
+      subjectName={subj.name}
       mode={mode === "adhoc" ? "adhoc" : "scheduled"}
-      tutorName={settings?.tutor_name ?? "Mia"}
       sessionLengthMin={settings?.session_length_min ?? 30}
       voiceSpeed={Number(settings?.voice_speed ?? 1)}
     />

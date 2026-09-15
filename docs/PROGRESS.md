@@ -1,5 +1,21 @@
 # Progress
 
+## 2026-09-15 — Tutor customiser + Haiku cost switch + debug pass
+- **Isabella can customise her tutor** (`/tutor`): name, skin tone, hair colour, hair style, live
+  preview. Stored per-device in localStorage (`src/lib/persona.ts`), no DB change. Chosen name is
+  passed into each tutor request so the model self-identifies. Entry points on Today + Me.
+  Verified in-browser: changed to "Zoe" (dark skin, bun) and it carried across the app.
+- **Cheaper model:** session model set to Haiku via `TUTOR_SESSION_MODEL` (Vercel + local). ~$2–5/mo.
+- **Spoken greeting on Join** so voice is obvious on desktop (free browser TTS; verified speaking=true).
+- **Debug/gaps fixes:**
+  - BUG: Christian Studies faith-handling was injected into *every* subject (school context is
+    "Christian school"); now gated to the `christian` subject only.
+  - Model now told its name in the system prompt.
+  - `/session` guards against opening an inactive subject.
+  - Safe-area padding on the call view for iPhone notch.
+  - Abandoned sessions close+summarise via `pagehide` `sendBeacon`.
+- HANDOVER.md rewritten as a full build bible incl. detailed Phase 3–4 specs for another builder.
+
 ## 2026-09-14 — Phase 2 (voice + character + live-call) + full NSW grounding
 - **Animated character** Mia (`TutorCharacter.tsx`): warm tutor on a headset, blinks, idles,
   mouth moves while speaking.

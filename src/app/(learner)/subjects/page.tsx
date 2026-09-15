@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import PersonaName from "@/components/PersonaName";
 
 // Subjects — the only list she sees, and only the ones Sarah has switched on.
 export default async function SubjectsPage() {
@@ -29,8 +30,8 @@ export default async function SubjectsPage() {
       </div>
 
       <div className="mt-6 rounded-2xl bg-sand p-4 text-sm text-ink/70">
-        Stuck on homework? Start the subject and describe the question. {""}
-        {"Mia"} will work through it with you, she will not just give the answer.
+        Stuck on homework? Start the subject and describe the question.{" "}
+        <PersonaName /> will work through it with you, she will not just give the answer.
       </div>
     </div>
   );

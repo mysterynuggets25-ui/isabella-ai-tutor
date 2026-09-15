@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "@/components/SignOutButton";
 
@@ -69,7 +70,14 @@ export default async function MePage() {
         </div>
       </div>
 
-      <div className="mt-10 text-center">
+      <Link
+        href="/tutor"
+        className="mt-8 block rounded-2xl border border-sand bg-white p-4 text-center font-semibold text-teal hover:border-teal"
+      >
+        🎨 Customise your tutor
+      </Link>
+
+      <div className="mt-8 text-center">
         <SignOutButton />
       </div>
     </div>

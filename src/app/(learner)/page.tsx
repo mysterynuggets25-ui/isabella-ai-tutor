@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import TutorCharacter from "@/components/TutorCharacter";
+import PersonaName from "@/components/PersonaName";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DAY_FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -22,7 +23,6 @@ export default async function TodayPage() {
     .select("id", { count: "exact", head: true })
     .gte("started_at", weekAgo);
 
-  const tutorName = settings?.tutor_name ?? "Mia";
   const active = subjects ?? [];
   const now = new Date();
   const hour = now.getHours();
@@ -68,7 +68,7 @@ export default async function TodayPage() {
             </div>
             <div>
               <p className="text-xs uppercase tracking-wide text-white/60">Tonight · {settings?.session_length_min ?? 30} min</p>
-              <h2 className="mt-1 text-xl font-semibold">{todaySubject.name} with {tutorName}</h2>
+              <h2 className="mt-1 text-xl font-semibold">{todaySubject.name} with <PersonaName /></h2>
               <p className="text-sm text-white/70">She has tonight planned. One thing at a time.</p>
             </div>
           </div>
@@ -89,7 +89,7 @@ export default async function TodayPage() {
               <p className="text-xs uppercase tracking-wide text-white/60">Next session</p>
               <h2 className="mt-1 text-xl font-semibold">{nextDayName}</h2>
               <p className="text-sm text-white/70">
-                {daysUntil === 1 ? "Tomorrow" : `In ${daysUntil} days`} with {tutorName}.
+                {daysUntil === 1 ? "Tomorrow" : `In ${daysUntil} days`} with <PersonaName />.
               </p>
             </div>
           </div>
@@ -123,7 +123,11 @@ export default async function TodayPage() {
         href="/subjects"
         className="mt-3 block rounded-2xl border border-teal py-3 text-center font-semibold text-teal hover:bg-teal hover:text-white"
       >
-        Ask {tutorName} anything
+        Ask <PersonaName /> anything
+      </Link>
+
+      <Link href="/tutor" className="mt-3 block text-center text-sm text-ink/50 hover:text-teal">
+        🎨 Change how your tutor looks
       </Link>
     </div>
   );

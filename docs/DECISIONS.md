@@ -39,3 +39,20 @@ Design decisions and why, so a future maintainer does not undo them by accident.
 - **D9 — Phase 1 is a desire test.** Two subjects, text only, before paying for voice or the
   character. If she does not reach for it in a fortnight, the fix is in how it talks to her, not in
   more features.
+
+- **D10 — Voice is the phone's built-in TTS (free), not a paid neural voice.** Zero token cost, works
+  on iPhone. `useTutorVoice` unlocks iOS speech inside a tap (`prime()`) and Mia greets on Join so
+  voice is obvious. A neural voice is an optional paid upgrade behind the same interface.
+
+- **D11 — Sessions run on Haiku, not Sonnet, for cost.** Set via `TUTOR_SESSION_MODEL`. Very capable
+  for Year 10; flip to `claude-sonnet-5` if Mia seems less sharp. The adapter is provider-swappable
+  (OpenAI possible) but staying single-vendor avoids a second account/key to manage.
+
+- **D12 — Tutor persona (name + look) lives per-device in localStorage, not the DB.** Lets Isabella
+  own her tutor instantly with no migration and no parent gate. The chosen name is passed into each
+  tutor request so the model matches it. Trade-off: not synced across devices, not visible to the
+  parent. Promote to DB columns if that changes.
+
+- **D13 — Christian Studies faith-handling is gated to the `christian` subject only**, not to the
+  whole app just because the school context is Christian. A maths session must not carry the
+  contested-faith instructions.
