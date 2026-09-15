@@ -1,25 +1,35 @@
 "use client";
 
-// Isabella's tutor is hers to shape. Her chosen name + look live on her own
-// device (localStorage) so it needs no database change and no parent approval.
-// The name is passed into each tutor request so the model knows who it is.
+// Isabella's tutor is hers: a named animal companion she picks. Her choices
+// live on her own device (localStorage) so it needs no database change and no
+// parent approval. The name is passed into each tutor request so the model
+// knows who it is. The animal, colour, name and voice are all Isabella's call.
+
+export type Animal = "fox" | "cat" | "rabbit" | "bear" | "owl";
 
 export type Persona = {
   name: string;
-  skin: string;
-  hair: string;
-  hairStyle: "long" | "short" | "bun";
+  animal: Animal;
+  color: string;
+  voice: "female" | "male";
 };
 
-export const SKIN_TONES = ["#f6c9a8", "#eab38a", "#c98a5e", "#8d5a3c"];
-export const HAIR_COLORS = ["#4a2e24", "#1f2937", "#8a5a2b", "#c88b3a", "#9aa3ad"];
-export const HAIR_STYLES: Persona["hairStyle"][] = ["long", "short", "bun"];
+export const ANIMALS: { key: Animal; label: string }[] = [
+  { key: "fox", label: "Fox" },
+  { key: "cat", label: "Cat" },
+  { key: "rabbit", label: "Rabbit" },
+  { key: "bear", label: "Bear" },
+  { key: "owl", label: "Owl" },
+];
+
+// Warm, low-contrast fur colours (no neon).
+export const FUR_COLORS = ["#c1673f", "#d9a05f", "#8a8f7a", "#6e7d58", "#7a6a5a", "#3b352d"];
 
 export const DEFAULT_PERSONA: Persona = {
-  name: "Mia",
-  skin: SKIN_TONES[0],
-  hair: HAIR_COLORS[0],
-  hairStyle: "long",
+  name: "Hazel",
+  animal: "fox",
+  color: FUR_COLORS[0],
+  voice: "female",
 };
 
 const KEY = "isabella.persona";

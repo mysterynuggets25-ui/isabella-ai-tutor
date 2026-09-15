@@ -24,8 +24,8 @@ export default function SessionChat({
   voiceSpeed?: number;
 }) {
   const router = useRouter();
-  const voice = useTutorVoice({ rate: voiceSpeed });
   const [persona, setPersona] = useState<Persona>(DEFAULT_PERSONA);
+  const voice = useTutorVoice({ rate: voiceSpeed, gender: persona.voice });
   const [joined, setJoined] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -74,7 +74,7 @@ export default function SessionChat({
     elapsedSec < totalSec * 0.9 ? "Your turn to explain" :
     "Wrapping up";
 
-  const look = { skin: persona.skin, hair: persona.hair, hairStyle: persona.hairStyle };
+  const look = { animal: persona.animal, color: persona.color };
 
   function join() {
     setJoined(true);

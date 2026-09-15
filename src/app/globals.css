@@ -1,15 +1,32 @@
 @import "tailwindcss";
 
+/*
+  Warm, low-contrast palette — cream, sage and terracotta — deliberately not
+  ed-tech blue. Token names are kept from the first build (teal/coral) but their
+  values are the new palette, so the whole app shifts at once. New code can use
+  the sage/terracotta aliases.
+*/
 @theme {
-  --color-cream: #f7f3ec;
-  --color-ink: #1f2937;
-  --color-teal: #0f766e;
-  --color-teal-deep: #134e4a;
-  --color-coral: #f4795b;
-  --color-coral-deep: #e2603f;
-  --color-sand: #ece5d8;
-  --color-gold: #d9a441;
+  --color-cream: #f3eee2;      /* page background */
+  --color-paper: #fbf8f1;      /* cards */
+  --color-ink: #3b352d;        /* warm near-black text */
+  --color-sand: #e4dccb;       /* borders / muted fills */
+  --color-gold: #bf8a3c;       /* streak accent */
+
+  /* sage (primary) — mapped onto the old teal tokens */
+  --color-teal: #6e7d58;
+  --color-teal-deep: #4f5c3d;
+  --color-sage: #6e7d58;
+  --color-sage-deep: #4f5c3d;
+
+  /* terracotta (accent / CTA) — mapped onto the old coral tokens */
+  --color-coral: #c1673f;
+  --color-coral-deep: #a5522f;
+  --color-terracotta: #c1673f;
+  --color-terracotta-deep: #a5522f;
+
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
 }
 
 html,
@@ -24,4 +41,12 @@ body {
 
 * {
   box-sizing: border-box;
+}
+
+/* Warm serif for display headings, matching the mockup. */
+h1,
+h2,
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
 }

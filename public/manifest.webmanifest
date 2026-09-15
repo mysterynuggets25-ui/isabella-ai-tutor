@@ -1,0 +1,14 @@
+{
+  "name": "Isabella's Tutor",
+  "short_name": "Isabella",
+  "description": "A private AI tutor.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3eee2",
+  "theme_color": "#f3eee2",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

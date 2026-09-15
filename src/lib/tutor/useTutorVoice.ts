@@ -5,20 +5,25 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // Voice out using the browser's built-in speech synthesis. Free, no API key,
 // works on iPhone Safari. The neural-TTS upgrade (a paid key, nicer voice) can
 // swap in behind this same interface later without touching the UI.
-export function useTutorVoice(opts?: { rate?: number }) {
+export function useTutorVoice(opts?: { rate?: number; gender?: "female" | "male" }) {
   const [supported, setSupported] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
+  const gender = opts?.gender ?? "female";
 
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     setSupported(true);
 
+    const femaleNames = /female|karen|catherine|zira|samantha|fiona|tessa|moira/i;
+    const maleNames = /male|daniel|alex|fred|lee|oliver|gordon|rishi/i;
+    const wanted = gender === "male" ? maleNames : femaleNames;
+
     const pick = () => {
       const voices = window.speechSynthesis.getVoices();
-      // Prefer an Australian English female-ish voice, then any en, then default.
       voiceRef.current =
-        voices.find((v) => /en-AU/i.test(v.lang) && /female|karen|catherine|zira|samantha/i.test(v.name)) ||
+        voices.find((v) => /en-AU/i.test(v.lang) && wanted.test(v.name)) ||
+        voices.find((v) => /^en/i.test(v.lang) && wanted.test(v.name)) ||
         voices.find((v) => /en-AU/i.test(v.lang)) ||
         voices.find((v) => /^en/i.test(v.lang)) ||
         voices[0] ||
@@ -29,7 +34,7 @@ export function useTutorVoice(opts?: { rate?: number }) {
     return () => {
       window.speechSynthesis.onvoiceschanged = null;
     };
-  }, []);
+  }, [gender]);
 
   const primed = useRef(false);
   // iOS Safari only allows speech that begins inside a user gesture. Call this
