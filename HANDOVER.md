@@ -58,8 +58,11 @@ cd ~/isabella-ai-tutor && npx vercel@59 --prod --yes
 `supabase/migrations/`: `0001_init.sql` (schema + RLS), `0002_seed.sql` (8 subjects; Maths+English
 active — Sarah later activated all 8; names later changed to "Maths"/"English"), `0003_push.sql`
 (push_subscriptions), `0004_usage.sql` (usage_monthly — cost cap/meter), `0005_holiday_mode.sql`
-(settings.holiday_mode). Apply in the Supabase SQL editor. NOTE: `create policy` is not idempotent —
-re-running a migration whose policy exists errors "already exists"; run only the new statements.
+(settings.holiday_mode), `0006_parent_managed_memory.sql` (learner_profile.parent_guidance +
+profile_notes.source — **run this for parent-managed memory to persist**; both lines are idempotent
+`add column if not exists`). Apply in the Supabase SQL editor. NOTE: `create policy` is not
+idempotent — re-running a migration whose policy exists errors "already exists"; run only the new
+statements.
 
 ### Since-launch capabilities (all live)
 - **Canvas sync**: `lib/canvas.ts` pulls assessments/exams from `CANVAS_ICS_URL` (.ics), parses due
@@ -141,7 +144,7 @@ src/components/            SessionChat, TutorCharacter (animals + `full` dungare
                           PersonaName, Goals, Reminders, SignOutButton
 public/sw.js              service worker (push); public/manifest.webmanifest + icon.svg (installable)
 vercel.json               daily reminders cron (21:00 UTC ≈ 7-8am AEST)
-supabase/migrations/      0001 init+RLS · 0002 seed · 0003 push · 0004 usage · 0005 holiday_mode
+supabase/migrations/      0001 init+RLS · 0002 seed · 0003 push · 0004 usage · 0005 holiday_mode · 0006 parent-managed memory
 src/lib/                  canvas.ts (Canvas .ics sync) · holidays.ts · events.ts (personal calendar)
 src/components/           CalendarBoard.tsx (interactive) · GoalNudge · AckFlagButton · WeeklyNoteButton
 ```
