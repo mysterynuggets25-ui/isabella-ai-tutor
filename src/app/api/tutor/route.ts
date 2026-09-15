@@ -49,8 +49,8 @@ export async function POST(req: NextRequest) {
   const plannedFocus = typeof dims._next_focus === "string" ? dims._next_focus : undefined;
   const upcoming = (dueRows ?? [])
     .filter((d) => d.due_date)
-    .map((d) => `${d.title}${d.subject_key ? ` (${d.subject_key})` : ""} due ${d.due_date}${d.next_step ? ` — ${d.next_step.slice(0, 160)}` : ""}`)
-    .join("; ") || undefined;
+    .map((d) => `${d.title}${d.subject_key ? ` (${d.subject_key})` : ""} due ${d.due_date}${d.next_step ? ` — ${d.next_step}` : ""}`)
+    .join("\n") || undefined;
 
   // Monthly cost cap. When hit, respond gracefully instead of calling the model.
   const cap = Number(settings.monthly_cap_usd ?? 0);

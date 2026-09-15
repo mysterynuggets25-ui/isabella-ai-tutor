@@ -11,13 +11,28 @@ type Holiday = { start: string; end: string; label: string };
 type Subject = { key: string; name: string };
 
 type Ev =
-  | { kind: "exam" | "assessment"; title: string; subjectKey: string | null; details: string | null }
+  | { kind: "exam" | "quiz" | "assessment"; title: string; subjectKey: string | null; details: string | null }
   | { kind: "class"; title: string; subjectKey: string }
   | { kind: "holiday"; title: string };
 
 function key(y: number, m: number, d: number) {
   return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
+
+function assessmentKind(title: string, details: string | null): "exam" | "quiz" | "assessment" {
+  const s = `${title} ${details ?? ""}`.toLowerCase();
+  if (/\bquiz\b/.test(s)) return "quiz";
+  if (/exam|examination|\btest\b/.test(s)) return "exam";
+  return "assessment";
+}
+
+const STYLE: Record<string, { chip: string; badge: string; emoji: string; label: string }> = {
+  exam: { chip: "bg-terracotta text-white", badge: "bg-terracotta text-white", emoji: "📝", label: "Exam" },
+  quiz: { chip: "bg-gold/25 text-ink/80", badge: "bg-gold text-white", emoji: "✏️", label: "Quiz" },
+  assessment: { chip: "bg-terracotta/15 text-terracotta-deep", badge: "bg-terracotta/15 text-terracotta-deep", emoji: "📄", label: "Assessment" },
+  class: { chip: "bg-sage/15 text-sage-deep", badge: "bg-sage/15 text-sage-deep", emoji: "🎓", label: "Lesson" },
+  holiday: { chip: "bg-gold/15 text-ink/50", badge: "bg-gold/15 text-ink/50", emoji: "🌴", label: "Holiday" },
+};
 
 export default function CalendarBoard({
   activeDays,
@@ -51,8 +66,7 @@ export default function CalendarBoard({
     const push = (k: string, e: Ev) => map.set(k, [...(map.get(k) ?? []), e]);
 
     for (const a of assessments) {
-      const isExam = /exam|test|examination/i.test(`${a.title} ${a.next_step ?? ""}`);
-      push(a.due_date, { kind: isExam ? "exam" : "assessment", title: a.title, subjectKey: a.subject_key, details: a.next_step });
+      push(a.due_date, { kind: assessmentKind(a.title, a.next_step), title: a.title, subjectKey: a.subject_key, details: a.next_step });
     }
     // Scheduled classes across the visible month.
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -74,14 +88,22 @@ export default function CalendarBoard({
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const cells: (number | null)[] = [...Array(startOffset).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
 
-  const chip = (e: Ev) => {
-    if (e.kind === "exam") return { cls: "bg-terracotta text-white", text: "📝 " + e.title };
-    if (e.kind === "assessment") return { cls: "bg-terracotta/15 text-terracotta-deep", text: e.title };
-    if (e.kind === "class") return { cls: "bg-sage/15 text-sage-deep", text: e.title };
-    return { cls: "bg-gold/20 text-ink/50", text: "🌴 " + e.title };
-  };
-
+  const chipFor = (e: Ev) => ({ cls: STYLE[e.kind].chip, text: `${STYLE[e.kind].emoji} ${e.title}` });
   const selectedEvents = selected ? eventsByDay.get(selected) ?? [] : [];
+
+  // "Up next" — the next few assessments/quizzes/exams across all months.
+  const upNext = assessments
+    .filter((a) => a.due_date >= todayKey)
+    .slice(0, 4)
+    .map((a) => ({ ...a, kind: assessmentKind(a.title, a.next_step) }));
+
+  const subjName = (k: string | null) => subjects.find((s) => s.key === k)?.name ?? "School";
+  const dueShort = (d: string) => {
+    const diff = Math.round((new Date(d + "T00:00:00").getTime() - new Date(new Date().toDateString()).getTime()) / 86_400_000);
+    if (diff <= 0) return "today";
+    if (diff === 1) return "tomorrow";
+    return new Date(d + "T00:00:00").toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" });
+  };
 
   return (
     <div>
@@ -98,6 +120,28 @@ export default function CalendarBoard({
           <span className="text-[10px] uppercase tracking-wide text-ink/50">day{streak === 1 ? "" : "s"}</span>
         </div>
       </div>
+
+      {/* Up next — the closest assessments/quizzes/exams, easy to see */}
+      {upNext.length > 0 && (
+        <div className="mt-4">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/40">Up next</div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {upNext.map((a, i) => (
+              <Link
+                key={i}
+                href={a.subject_key ? `/session?subject=${a.subject_key}&mode=adhoc` : "/calendar"}
+                className="w-40 shrink-0 rounded-2xl border border-sand bg-paper p-3 hover:border-sage"
+              >
+                <span className={`inline-block rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${STYLE[a.kind].badge}`}>
+                  {STYLE[a.kind].emoji} {STYLE[a.kind].label}
+                </span>
+                <div className="mt-1.5 truncate text-sm font-semibold">{subjName(a.subject_key)}</div>
+                <div className="text-[11px] text-terracotta-deep">{dueShort(a.due_date)}</div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mt-4 rounded-3xl border border-sand bg-paper p-2 sm:p-3">
         <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-ink/35">
@@ -126,7 +170,7 @@ export default function CalendarBoard({
                 </span>
                 <div className="mt-0.5 space-y-0.5 overflow-hidden">
                   {shown.map((e, j) => {
-                    const c = chip(e);
+                    const c = chipFor(e);
                     return <div key={j} className={`truncate rounded px-1 py-0.5 text-[9px] leading-tight ${c.cls}`}>{c.text}</div>;
                   })}
                   {evs.length > shown.length && <div className="px-1 text-[9px] text-ink/40">+{evs.length - shown.length}</div>}
@@ -134,6 +178,11 @@ export default function CalendarBoard({
               </button>
             );
           })}
+        </div>
+        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-sand px-1 pt-2 text-[10px] text-ink/50">
+          {(["class", "assessment", "quiz", "exam", "holiday"] as const).map((k) => (
+            <span key={k} className="flex items-center gap-1">{STYLE[k].emoji} {STYLE[k].label}</span>
+          ))}
         </div>
       </div>
 
@@ -150,8 +199,8 @@ export default function CalendarBoard({
               <div key={i} className="rounded-2xl border border-sand p-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${chip(e).cls}`}>
-                      {e.kind === "class" ? "Class" : e.kind === "exam" ? "Exam" : e.kind === "assessment" ? "Assessment" : "Holiday"}
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${STYLE[e.kind].badge}`}>
+                      {STYLE[e.kind].label}
                     </span>
                     <div className="mt-1 text-sm font-medium">{e.title}</div>
                     {"details" in e && e.details && <div className="mt-1 text-xs text-ink/60">{e.details}</div>}
