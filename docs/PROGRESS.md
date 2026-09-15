@@ -1,5 +1,27 @@
 # Progress
 
+## 2026-09-15 (eve) — Pig default + CALL rebuild + My corner + Coming up
+- **Default tutor = cute pig "Penny"** (added `pig` to the animal set + renderer). Isabella still
+  fully redesigns it.
+- **Session rebuilt as a real call** (`SessionChat.tsx`): tutor on camera, her **self-view tile**
+  (camera **off by default**, real local webcam toggle via getUserMedia, never uploaded), timer,
+  **sound + camera controls**, **Leave**, and a live **SHARED BOARD** beside it (conversation as a
+  working document). Type-instead always present. Fully responsive (side-by-side desktop, stacked
+  mobile) — verified both.
+- **My corner** (`/me`): progress stats, a growing **animal SANCTUARY** (one friend joins per
+  completed week = a week with 3+ sessions), and her own **goals** (per-device localStorage).
+- **Coming up**: learner `/coming-up` (3 on screen, each with next step + "work on it") and parent
+  `/console/coming-up` add/edit form, both on the existing `assessments` table (no migration).
+- Nav: Coming up now built; My work / Cheat sheets still "soon". Verified live, deployed.
+
+### Still to build (Phase 3–4 remainder)
+- **My work** (upload photo/Word/PDF → what's working + exactly 2 fixes, no rewrite). Needs a
+  Supabase **Storage bucket** (Sarah creates it / applies policy) + text extraction + a vision call.
+- **Cheat sheets** (printable, generated from her own history; she styles them).
+- **Push notifications** for session reminders — needs a **service worker + web-push (VAPID) backend**;
+  iOS requires the installed PWA. (Manifest/installability already done.)
+- **Weekly parent note** + **usage-cap enforcement** + **export/delete** + **Year 11 rollover** (Phase 4).
+
 ## 2026-09-15 (pm) — Mockup redesign + animal tutor + responsive + PWA
 - New look & feel per Sarah's desktop mockup: warm **cream / sage / terracotta** palette (remapped
   the teal/coral tokens so the whole app shifted) + **Fraunces serif** headings.

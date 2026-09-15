@@ -14,11 +14,13 @@ export default function TutorCharacter({
   thinking = false,
   size = 128,
   look,
+  full = false,
 }: {
   speaking?: boolean;
   thinking?: boolean;
   size?: number;
   look?: { animal: Animal; color: string };
+  full?: boolean; // draw the body + dungarees (for the call / big previews)
 }) {
   const [resolved, setResolved] = useState<{ animal: Animal; color: string }>(
     look ?? { animal: DEFAULT_PERSONA.animal, color: DEFAULT_PERSONA.color },
@@ -64,8 +66,40 @@ export default function TutorCharacter({
   const eyeRx = animal === "owl" ? 12 : 7;
   const open = mouthOpen;
 
+  const OVERALL = "#5f6f52";
+  const OVERALL_DK = "#4f5c3d";
+
   return (
-    <svg viewBox="0 0 200 200" width={size} height={size} role="img" aria-label="Your tutor">
+    <svg
+      viewBox={full ? "0 0 200 300" : "0 0 200 200"}
+      width={size}
+      height={full ? size * 1.5 : size}
+      role="img"
+      aria-label="Your tutor"
+    >
+      {/* Body + dungarees (behind the head) */}
+      {full && (
+        <g>
+          {/* torso */}
+          <path d="M42 300 C42 214 62 168 100 168 C138 168 158 214 158 300 Z" fill={color} />
+          {/* little arms */}
+          <ellipse cx="46" cy="232" rx="15" ry="26" fill={color} />
+          <ellipse cx="154" cy="232" rx="15" ry="26" fill={color} />
+          {/* cream shirt at the neck */}
+          <path d="M76 172 Q100 192 124 172 L124 200 L76 200 Z" fill={CREAM} />
+          {/* overalls bib */}
+          <path d="M66 196 Q100 214 134 196 L134 300 L66 300 Z" fill={OVERALL} />
+          {/* straps */}
+          <path d="M78 176 L88 202 L80 206 L70 180 Z" fill={OVERALL} />
+          <path d="M122 176 L112 202 L120 206 L130 180 Z" fill={OVERALL} />
+          {/* buttons */}
+          <circle cx="80" cy="203" r="4" fill="#c9a24a" />
+          <circle cx="120" cy="203" r="4" fill="#c9a24a" />
+          {/* pocket */}
+          <rect x="84" y="228" width="32" height="30" rx="6" fill="none" stroke={OVERALL_DK} strokeWidth="3" />
+        </g>
+      )}
+
       {/* Ears (behind head) */}
       {animal === "pig" && (
         <>

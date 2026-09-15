@@ -4,6 +4,7 @@ import TutorCharacter from "@/components/TutorCharacter";
 import Goals from "@/components/Goals";
 import SignOutButton from "@/components/SignOutButton";
 import type { Animal } from "@/lib/persona";
+import { computeStreak } from "@/lib/streak";
 
 // My corner — a quiet, private place that rewards showing up. One animal joins
 // the sanctuary each week she completes. No scores, no leaderboards.
@@ -34,6 +35,7 @@ export default async function MyCornerPage() {
   }
   const completedWeeks = [...perWeek.values()].filter((n) => n >= 3).length;
   const unlocked = Math.min(completedWeeks, SANCTUARY.length);
+  const { current: streak } = computeStreak(all.map((s) => new Date(s.started_at)));
 
   return (
     <div>
@@ -41,9 +43,9 @@ export default async function MyCornerPage() {
       <p className="mt-2 text-sm text-ink/55">Yours. A new friend joins each week you show up.</p>
 
       <div className="mt-6 grid grid-cols-3 gap-3 text-center">
+        <Stat value={streak} label="🔥 day streak" />
         <Stat value={thisWeek} label="this week" />
         <Stat value={all.length} label="sessions" />
-        <Stat value={completedWeeks} label="weeks" />
       </div>
 
       {/* Sanctuary */}

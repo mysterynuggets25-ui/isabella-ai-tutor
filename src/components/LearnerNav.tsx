@@ -8,7 +8,7 @@ import PersonaName from "@/components/PersonaName";
 const BUILT = [
   { href: "/", label: "Home" },
   { href: "/subjects", label: "Subjects" },
-  { href: "/coming-up", label: "Coming up" },
+  { href: "/calendar", label: "Calendar" },
   { href: "/me", label: "My corner" },
 ];
 const SOON = ["My work", "Cheat sheets"];

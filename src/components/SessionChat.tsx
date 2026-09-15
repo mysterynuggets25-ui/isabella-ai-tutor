@@ -162,7 +162,7 @@ export default function SessionChat({
           {mode === "scheduled" ? "Scheduled session" : "Quick help"}
         </div>
         <div className="mt-8 rounded-[2rem] bg-white/5 p-6 ring-1 ring-white/10">
-          <TutorCharacter size={150} look={look} />
+          <TutorCharacter size={140} look={look} full />
         </div>
         <h1 className="mt-6 text-2xl">{subjectName} with {name}</h1>
         <p className="mt-2 text-white/60">
@@ -192,9 +192,9 @@ export default function SessionChat({
         </div>
 
         {/* Tutor on camera */}
-        <div className="flex flex-1 items-center justify-center px-6 py-4">
-          <div className={`rounded-[2rem] bg-black/20 p-6 ring-2 transition-all ${voice.speaking ? "ring-terracotta shadow-[0_0_50px_-10px_var(--color-terracotta)]" : "ring-white/10"}`}>
-            <TutorCharacter speaking={soundOn && voice.speaking} thinking={busy} size={150} look={look} />
+        <div className="flex flex-1 items-end justify-center overflow-hidden px-4 pt-2">
+          <div className={`rounded-t-[2.5rem] bg-black/15 px-6 pt-4 transition-all ${voice.speaking ? "ring-2 ring-terracotta shadow-[0_0_60px_-10px_var(--color-terracotta)]" : ""}`}>
+            <TutorCharacter speaking={soundOn && voice.speaking} thinking={busy} size={200} look={look} full />
           </div>
         </div>
         <div className="pb-1 text-center text-sm font-medium">{name}</div>

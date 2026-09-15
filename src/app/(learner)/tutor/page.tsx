@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import TutorCharacter from "@/components/TutorCharacter";
+import { useTutorVoice } from "@/lib/tutor/useTutorVoice";
 import {
   DEFAULT_PERSONA,
   getPersona,
@@ -18,8 +19,14 @@ export default function CustomiseTutorPage() {
   const router = useRouter();
   const [p, setP] = useState<Persona>(DEFAULT_PERSONA);
   const [saved, setSaved] = useState(false);
+  const voice = useTutorVoice({ gender: p.voice });
 
   useEffect(() => setP(getPersona()), []);
+
+  function hearHello() {
+    voice.prime();
+    voice.speak(`Hi Isabella, I'm ${p.name || "your tutor"}. I can't wait to help you with your work.`);
+  }
 
   function update(patch: Partial<Persona>) {
     setP((prev) => ({ ...prev, ...patch }));
@@ -37,9 +44,9 @@ export default function CustomiseTutorPage() {
       <h1 className="text-2xl">Make your tutor yours</h1>
       <p className="mt-1 text-sm text-ink/60">Pick your animal, name them, and choose a voice. Change it any time.</p>
 
-      <div className="mt-6 flex flex-col items-center rounded-3xl bg-gradient-to-b from-sage to-sage-deep p-6">
-        <TutorCharacter size={150} look={{ animal: p.animal, color: p.color }} />
-        <div className="mt-3 font-display text-xl text-white">{p.name || "…"}</div>
+      <div className="mt-6 flex flex-col items-center overflow-hidden rounded-3xl bg-gradient-to-b from-sage to-sage-deep px-6 pt-6">
+        <TutorCharacter size={150} look={{ animal: p.animal, color: p.color }} full />
+        <div className="pb-4 font-display text-xl text-white">{p.name || "…"}</div>
       </div>
 
       <Section title="Animal">
@@ -93,7 +100,18 @@ export default function CustomiseTutorPage() {
             {v}
           </button>
         ))}
+        {voice.supported && (
+          <button
+            onClick={hearHello}
+            className={`rounded-full border px-5 py-2 text-sm ${voice.speaking ? "border-terracotta bg-terracotta text-white" : "border-terracotta text-terracotta"}`}
+          >
+            {voice.speaking ? "🔊 Speaking…" : "🔊 Hear a hello"}
+          </button>
+        )}
       </Section>
+      {!voice.supported && (
+        <p className="mt-2 text-xs text-ink/45">Voice isn&apos;t available in this browser. Try Safari or Chrome, and check your volume.</p>
+      )}
 
       <button
         onClick={save}
