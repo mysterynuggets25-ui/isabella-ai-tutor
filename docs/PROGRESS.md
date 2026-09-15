@@ -1,5 +1,12 @@
 # Progress
 
+## 2026-09-16 (b) — Switched to OpenAI + push table live
+- **Now running on OpenAI** `gpt-4o-mini` (incl. vision). `model.ts` picks OpenAI when
+  `OPENAI_API_KEY` is set (it is, in Vercel prod + local), else Claude. Verified live: proactive
+  plan opener via OpenAI. ~5x cheaper/token than Haiku (~$1-2/mo). To revert: remove OPENAI_API_KEY.
+- **push_subscriptions table applied** by Sarah → reminders ready. `/api/cron/reminders` verified
+  ({ok, sent:0} with no subs yet). Isabella turns them on in My corner (Chrome; iPhone needs installed PWA).
+
 ## 2026-09-16 — Warmer dashboard + push notifications
 - **Home redesigned** (was "too plain"): Penny (full character) on the hero, streak chip, sanctuary
   peek, later-this-week, quick tiles. Alive + personal, still one clear "Start here".
