@@ -1,5 +1,24 @@
 # Progress
 
+## 2026-09-16 (d) — Education Brain integration (how Isabella actually studies)
+Adapted the system to the detailed ChatGPT "Personal Education Brain" profile Isabella has been
+studying from, in three parts:
+- **Penny teaches her way** (`src/lib/tutor/prompt.ts`): added "HOW SHE LEARNS BEST" — task-first
+  (start from her real worksheet/brief, read the command word, answer at that depth/length), match
+  depth to the deliverable, iterate don't restart, visible structure (headings/arrows/tables), give
+  frames not answers (PEEL, cause→effect, claim→evidence→limitation), keep her voice when editing,
+  the assessment-check protocol (required vs optional, name what's missing, never invent
+  requirements), misconception→hint→retry→rule, and observation vs proof.
+- **Cheat sheets are kept + upgraded** (answers "where do the cheat sheets go?"): `generateCheatSheet`
+  now returns coreIdea, answerFrame and a 3-question self-test (the profile's §25 revision template);
+  new `src/lib/cheatsheets.ts` saves each sheet to her device; `/cheat-sheets` shows "Your cheat
+  sheets" to reopen/delete and renders the new fields. They were ephemeral before — now they persist.
+- **"My work" checks the real assessment** (`markWork` + `/api/work`): when the subject has an
+  upcoming Canvas assessment, her draft is checked against that actual task — returns a requirement
+  checklist (done/not-done) plus the two highest-value gaps, working from the real brief not a
+  generic rubric. New "Against the task" panel on the work page.
+- Verified: `npm run build` clean. Committed + deployed + backed up + handover updated.
+
 ## 2026-09-16 (c) — Phase 4: weekly note, cost cap, export/delete, rollover
 - **Weekly parent note**: `generateWeeklyNote` + `/api/cron/weekly-note` (Vercel cron Sun 09:00 UTC
   + "Write this week's note" button on console Overview; dual auth secret-or-parent). Verified: real

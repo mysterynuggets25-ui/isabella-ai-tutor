@@ -151,35 +151,67 @@ export async function runTutor(opts: { system: string; turns: ChatTurn[]; mode: 
 export async function markWork(opts: {
   subjectName: string;
   criteria?: string;
+  assessment?: string; // the real task this work is for (title, due, weighting, requirements)
   text?: string;
   image?: { mediaType: string; data: string };
-}): Promise<{ working: string; fixes: string[] }> {
+}): Promise<{ working: string; fixes: string[]; checklist?: { item: string; done: boolean }[] }> {
   const userText = opts.text?.trim()
     ? `Here is my ${opts.subjectName} work:\n\n${opts.text.trim()}`
     : `Here is a photo of my ${opts.subjectName} work. Read it and mark it.`;
 
+  // If this work is for a real assessment, check it against the actual brief —
+  // separate what's required from what's optional, and name what's missing.
+  const assessmentBlock = opts.assessment
+    ? `\nTHIS WORK IS FOR A REAL ASSESSMENT. Check it against this actual task, not a generic rubric:
+${opts.assessment}
+- Work from the task wording above. Separate what is REQUIRED from what is recommended or optional.
+- Compare her draft to each requirement and notice what is missing or thin. Do not invent requirements that are not stated.
+- Return a "checklist": each stated requirement with done:true only if her work clearly meets it. This is how she sees what is left.
+- Her two fixes should be the two highest-value gaps against THIS task.`
+    : "";
+
+  const checklistJson = opts.assessment ? `, "checklist": [{"item": string, "done": boolean}]` : "";
+
   const raw = await complete({
     tier: "session",
     json: true,
-    maxTokens: 700,
+    maxTokens: 900,
     system: `You mark Isabella's Year 10 ${opts.subjectName} work against the NSW/NESA marking criteria.
 THE ONE RULE: never rewrite her work, and never write sentences or a worked solution she could copy in. You point, you do not fix.
-Return STRICT JSON only: {"working": string, "fixes": string[]}.
+Return STRICT JSON only: {"working": string, "fixes": string[]${checklistJson}}.
 - working: 2 to 3 warm, specific sentences on what is genuinely good and why (name the actual thing she did).
 - fixes: EXACTLY TWO items. Each names one specific thing to improve and how to think about it, WITHOUT doing it for her. Two, never more — a page of corrections is why teenagers stop asking for feedback.
-${opts.criteria ? `Mark against: ${opts.criteria}` : ""}
+${opts.criteria ? `Mark against: ${opts.criteria}` : ""}${assessmentBlock}
 No prose outside the JSON.`,
     messages: [{ role: "user", text: userText, image: opts.image }],
   });
 
-  const j = parseJson<{ working?: string; fixes?: unknown }>(raw, {});
+  const j = parseJson<{ working?: string; fixes?: unknown; checklist?: unknown }>(raw, {});
+  const checklist = Array.isArray(j.checklist)
+    ? j.checklist
+        .map((c) => (c && typeof c === "object" ? { item: String((c as Record<string, unknown>).item ?? ""), done: !!(c as Record<string, unknown>).done } : null))
+        .filter((c): c is { item: string; done: boolean } => !!c && c.item.length > 0)
+        .slice(0, 8)
+    : undefined;
   return {
     working: String(j.working ?? raw.slice(0, 300)),
     fixes: Array.isArray(j.fixes) ? j.fixes.slice(0, 2).map(String) : [],
+    ...(checklist && checklist.length ? { checklist } : {}),
   };
 }
 
 // One printable cheat sheet per topic, built from HER own history.
+export type CheatSheet = {
+  title: string;
+  coreIdea: string;
+  facts: string[];
+  why: string;
+  answerFrame: string;
+  keepMissing: string;
+  phrasing: string[];
+  selfTest: string[];
+};
+
 export async function generateCheatSheet(opts: {
   subjectName: string;
   topic?: string;
@@ -187,7 +219,7 @@ export async function generateCheatSheet(opts: {
   profileSummary?: string | null;
   dimensions?: Record<string, unknown>;
   notes?: string[];
-}): Promise<{ title: string; facts: string[]; why: string; keepMissing: string; phrasing: string[] }> {
+}): Promise<CheatSheet> {
   const history = [
     opts.profileSummary ? `Summary: ${opts.profileSummary}` : "",
     Object.keys(opts.dimensions ?? {}).length ? `How she works: ${JSON.stringify(opts.dimensions)}` : "",
@@ -197,27 +229,34 @@ export async function generateCheatSheet(opts: {
   const raw = await complete({
     tier: "adhoc",
     json: true,
-    maxTokens: 700,
-    system: `You make a single printable cheat sheet for Isabella's Year 10 ${opts.subjectName}${opts.topic ? ` on: ${opts.topic}` : ""}.
-Build it from HER history so it is personal, not generic. Return STRICT JSON only:
-{"title": string, "facts": string[], "why": string, "keepMissing": string, "phrasing": string[]}
+    maxTokens: 900,
+    system: `You make a single high-yield, printable cheat sheet for Isabella's Year 10 ${opts.subjectName}${opts.topic ? ` on: ${opts.topic}` : ""}.
+Goal: compressed understanding, not paragraphs in tiny font. Build it from HER history so it is personal.
+Return STRICT JSON only:
+{"title": string, "coreIdea": string, "facts": string[], "why": string, "answerFrame": string, "keepMissing": string, "phrasing": string[], "selfTest": string[]}
 - title: the topic, short.
-- facts: 4 to 7 core facts/formulas she needs, each one line.
+- coreIdea: 1-2 sentences — the big idea in plain words.
+- facts: 4 to 7 key facts / formulas / steps, each one line; show processes as arrows (A → B → C).
 - why: one line on why it works / the intuition.
-- keepMissing: the one thing SHE keeps getting wrong, drawn from her real errors in the notes (if none known, the most common trap for this topic).
-- phrasing: 2 to 4 exact phrases / command words used in NSW exam questions for this topic.
+- answerFrame: how to structure an answer for this topic in an exam (e.g. "PEEL: point, explain, evidence, link", or "state pattern → give evidence → note what it can't prove").
+- keepMissing: the ONE thing she keeps getting wrong, from her real errors in the notes (else the most common trap).
+- phrasing: 2 to 4 exact command words / phrasings used in NSW exam questions for this topic.
+- selfTest: exactly 3 quick recall questions she can test herself with (no answers).
 ${opts.criteria ? `Ground in: ${opts.criteria}` : ""}
 No prose outside the JSON.`,
     messages: [{ role: "user", text: history || "No history yet; make a solid general cheat sheet for the topic." }],
   });
 
-  const j = parseJson<{ title?: string; facts?: unknown; why?: string; keepMissing?: string; phrasing?: unknown }>(raw, {});
+  const j = parseJson<{ title?: string; coreIdea?: string; facts?: unknown; why?: string; answerFrame?: string; keepMissing?: string; phrasing?: unknown; selfTest?: unknown }>(raw, {});
   return {
     title: String(j.title ?? opts.subjectName),
+    coreIdea: String(j.coreIdea ?? ""),
     facts: Array.isArray(j.facts) ? j.facts.map(String) : [],
     why: String(j.why ?? ""),
+    answerFrame: String(j.answerFrame ?? ""),
     keepMissing: String(j.keepMissing ?? ""),
     phrasing: Array.isArray(j.phrasing) ? j.phrasing.map(String) : [],
+    selfTest: Array.isArray(j.selfTest) ? j.selfTest.map(String) : [],
   };
 }
 

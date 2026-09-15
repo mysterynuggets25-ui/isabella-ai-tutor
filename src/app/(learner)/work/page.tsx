@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import PersonaName from "@/components/PersonaName";
 
 type Subject = { key: string; name: string };
-type Result = { working: string; fixes: string[] };
+type Result = { working: string; fixes: string[]; checklist?: { item: string; done: boolean }[] };
 
 // Bring your work in — she uploads a photo or pastes what she wrote, and gets
 // back what's working, exactly two things to fix, and a way to talk each one
@@ -147,6 +147,21 @@ export default function MyWorkPage() {
             <div className="text-xs uppercase tracking-wide text-sage">What&apos;s working</div>
             <p className="mt-2 text-sm text-ink/80">{result.working}</p>
           </div>
+
+          {result.checklist && result.checklist.length > 0 && (
+            <div className="rounded-2xl border border-sand bg-paper p-5">
+              <div className="text-xs uppercase tracking-wide text-ink/50">Against the task</div>
+              <ul className="mt-3 space-y-2">
+                {result.checklist.map((c, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-ink/80">
+                    <span className={c.done ? "text-sage" : "text-terracotta-deep"}>{c.done ? "✓" : "○"}</span>
+                    <span className={c.done ? "" : "font-medium"}>{c.item}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-xs text-ink/45">Checked against your real assessment. The open circles are what&apos;s still to do.</p>
+            </div>
+          )}
 
           <div className="rounded-2xl border border-terracotta/30 bg-terracotta/5 p-5">
             <div className="text-xs uppercase tracking-wide text-terracotta-deep">Two things to fix</div>
