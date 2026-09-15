@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
+import { createServiceClient } from "@/lib/supabase/service";
 
 // Model adapter — provider-agnostic. Uses OpenAI when OPENAI_API_KEY is set
 // (cheapest: gpt-4o-mini, and it does vision), otherwise Anthropic (Claude
@@ -17,6 +18,55 @@ const ANTHROPIC_ADHOC = process.env.TUTOR_ADHOC_MODEL ?? "claude-haiku-4-5-20251
 
 export type ChatTurn = { role: "learner" | "tutor"; content: string };
 type Msg = { role: "user" | "assistant"; text: string; image?: { mediaType: string; data: string } };
+
+// Rough per-1M-token prices (USD) for cost tracking. Approximate on purpose.
+const PRICING: Record<string, { in: number; out: number }> = {
+  "gpt-4o-mini": { in: 0.15, out: 0.6 },
+  "gpt-4o": { in: 2.5, out: 10 },
+  "claude-haiku": { in: 1, out: 5 },
+  "claude-sonnet": { in: 3, out: 15 },
+};
+function priceFor(model: string) {
+  const k = Object.keys(PRICING).find((p) => model.includes(p));
+  return k ? PRICING[k] : { in: 0.5, out: 1.5 };
+}
+function monthKey(): string {
+  // Current month in Sydney, "YYYY-MM".
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney", year: "numeric", month: "2-digit" }).format(new Date());
+  return parts.slice(0, 7);
+}
+// Accumulate this month's usage. Fire-and-forget; read-modify-write is fine at
+// single-family volume.
+async function recordUsage(model: string, inTok: number, outTok: number) {
+  try {
+    const svc = createServiceClient();
+    const month = monthKey();
+    const price = priceFor(model);
+    const cost = (inTok / 1e6) * price.in + (outTok / 1e6) * price.out;
+    const { data } = await svc.from("usage_monthly").select("*").eq("month", month).maybeSingle();
+    await svc.from("usage_monthly").upsert({
+      month,
+      calls: (data?.calls ?? 0) + 1,
+      input_tokens: (data?.input_tokens ?? 0) + inTok,
+      output_tokens: (data?.output_tokens ?? 0) + outTok,
+      cost_usd: Number(((data?.cost_usd ?? 0) + cost).toFixed(4)),
+      updated_at: new Date().toISOString(),
+    });
+  } catch {
+    // usage_monthly may not exist yet (migration 0004) — never block a session.
+  }
+}
+
+// This month's spend so far (USD). Used to enforce the cap.
+export async function monthlyCostUsd(): Promise<number> {
+  try {
+    const svc = createServiceClient();
+    const { data } = await svc.from("usage_monthly").select("cost_usd").eq("month", monthKey()).maybeSingle();
+    return Number(data?.cost_usd ?? 0);
+  } catch {
+    return 0;
+  }
+}
 
 // One completion, either provider. Returns the assistant's text.
 async function complete(opts: {
@@ -51,6 +101,7 @@ async function complete(opts: {
       messages,
       ...(opts.json ? { response_format: { type: "json_object" as const } } : {}),
     });
+    recordUsage(res.model || model, res.usage?.prompt_tokens ?? 0, res.usage?.completion_tokens ?? 0);
     return res.choices[0]?.message?.content ?? "";
   }
 
@@ -66,6 +117,7 @@ async function complete(opts: {
       : m.text,
   }));
   const res = await anthropic.messages.create({ model, max_tokens: maxTokens, system: opts.system, messages });
+  recordUsage(model, res.usage?.input_tokens ?? 0, res.usage?.output_tokens ?? 0);
   return res.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
     .map((b) => b.text)
@@ -173,6 +225,23 @@ export type SessionLearning = {
   dimensions: Record<string, string>;
   next_focus: string;
 };
+
+// The weekly note to Sarah — plain language, patterns not grades.
+export async function generateWeeklyNote(opts: {
+  weekLabel: string;
+  digest: string; // per-session lines: subject, how it went, note
+}): Promise<string> {
+  const raw = await complete({
+    tier: "adhoc",
+    maxTokens: 500,
+    system: `You write a short weekly note for Isabella's mum about her tutoring (Year 10). Plain, warm,
+honest, specific. Patterns, not grades. 4-6 sentences, no bullet points, no headings. Cover: what
+improved, where she stalled or resisted, and what you'd do next week. If there were no sessions, say
+so kindly and gently suggest getting back to it. Never invent detail.`,
+    messages: [{ role: "user", text: `Week of ${opts.weekLabel}. Sessions this week:\n${opts.digest || "No sessions this week."}` }],
+  });
+  return raw.trim();
+}
 
 // Turn a finished session into what the tutor should remember + plan next.
 export async function summariseSession(opts: {

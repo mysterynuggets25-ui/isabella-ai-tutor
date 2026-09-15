@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getUserRole } from "@/lib/auth";
 import { buildTutorPrompt } from "@/lib/tutor/prompt";
-import { runTutor, type ChatTurn } from "@/lib/tutor/model";
+import { runTutor, monthlyCostUsd, type ChatTurn } from "@/lib/tutor/model";
 import { screenLearnerMessage, SAFE_RESPONSE } from "@/lib/tutor/safety";
 import { curriculumReference } from "@/lib/curriculum";
 
@@ -51,6 +51,17 @@ export async function POST(req: NextRequest) {
     .filter((d) => d.due_date)
     .map((d) => `${d.title}${d.subject_key ? ` (${d.subject_key})` : ""} due ${d.due_date}`)
     .join("; ") || undefined;
+
+  // Monthly cost cap. When hit, respond gracefully instead of calling the model.
+  const cap = Number(settings.monthly_cap_usd ?? 0);
+  if (cap > 0 && (await monthlyCostUsd()) >= cap) {
+    return NextResponse.json({
+      sessionId: sessionId ?? null,
+      reply:
+        "We've done so much learning this month that I need a little rest until next month. Ask Mum if you'd like some more time together.",
+      capped: true,
+    });
+  }
 
   const buildSystem = () =>
     buildTutorPrompt({
